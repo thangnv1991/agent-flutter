@@ -14,6 +14,7 @@ By default `init` installs adapters for all supported IDEs:
 - Cursor
 - Windsurf
 - Cline
+- GitHub (Copilot)
 
 ## Commands
 
@@ -21,7 +22,7 @@ By default `init` installs adapters for all supported IDEs:
 npx agent-flutter@latest init --ide all --cwd /path/to/project --force
 npx agent-flutter@latest init --ide trae,codex
 npx agent-flutter@latest sync
-npx agent-flutter@latest sync --ide trae,codex
+npx agent-flutter@latest sync --ide trae,codex,github
 npx agent-flutter@latest list --cwd /path/to/project
 ```
 
@@ -57,3 +58,4 @@ npm run release:major
 - Cursor: `.cursor/rules/agent-flutter.mdc`
 - Windsurf: `.windsurf/rules/agent-flutter.md`
 - Cline: `.clinerules/agent-flutter.md`
+- GitHub: `.github/copilot-instructions.md`

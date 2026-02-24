@@ -2,14 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const SUPPORTED_IDES = ['trae', 'codex', 'cursor', 'windsurf', 'cline'];
+const SUPPORTED_IDES = ['trae', 'codex', 'cursor', 'windsurf', 'cline', 'github'];
 
 const USAGE = `
 agent-flutter
 
 Usage:
-  npx agent-flutter@latest init [--ide all|trae,codex,cursor,windsurf,cline] [--cwd <project_dir>] [--force]
-  npx agent-flutter@latest sync [--ide all|trae,codex,cursor,windsurf,cline] [--cwd <project_dir>]
+  npx agent-flutter@latest init [--ide all|trae,codex,cursor,windsurf,cline,github] [--cwd <project_dir>] [--force]
+  npx agent-flutter@latest sync [--ide all|trae,codex,cursor,windsurf,cline,github] [--cwd <project_dir>]
   npx agent-flutter@latest list [--cwd <project_dir>]
 
 Commands:
@@ -233,6 +233,20 @@ async function applyPack({
         : `Skipped Cline adapter (exists): ${clinePath}`,
     );
   }
+
+  if (ideTargets.has('github')) {
+    const githubPath = path.join(projectRoot, '.github', 'copilot-instructions.md');
+    const written = await writeTextFile(
+      githubPath,
+      buildGithubCopilotInstructions(),
+      { force },
+    );
+    console.log(
+      written
+        ? `${verb} GitHub adapter: ${githubPath}`
+        : `Skipped GitHub adapter (exists): ${githubPath}`,
+    );
+  }
 }
 
 async function detectInstalledIdeTargets(projectRoot) {
@@ -242,6 +256,7 @@ async function detectInstalledIdeTargets(projectRoot) {
     ['cursor', path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc')],
     ['windsurf', path.join(projectRoot, '.windsurf', 'rules', 'agent-flutter.md')],
     ['cline', path.join(projectRoot, '.clinerules', 'agent-flutter.md')],
+    ['github', path.join(projectRoot, '.github', 'copilot-instructions.md')],
   ];
 
   const results = await Promise.all(
@@ -540,6 +555,19 @@ Execution checklist:
 2. Apply matching skills from \`.agent-flutter/skills\`.
 3. Preserve Flutter architecture conventions and localization requirements.
 4. Update docs/specs after behavior changes.
+`;
+}
+
+function buildGithubCopilotInstructions() {
+  return `# Agent Flutter Copilot Instructions
+
+This repository uses a shared local instruction pack in \`.agent-flutter\`.
+
+Follow this order when generating code:
+1. Read applicable files in \`.agent-flutter/rules/\`.
+2. If task matches a skill, read \`.agent-flutter/skills/<skill>/SKILL.md\`.
+3. Keep architecture, localization, and UI conventions aligned with the shared pack.
+4. Update specs/docs when UI/API behavior changes.
 `;
 }
 
