@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+trap 'echo "Error at line $LINENO: $BASH_COMMAND" >&2' ERR
 
 usage() {
   cat <<'EOF'
@@ -261,18 +262,30 @@ echo "- App package name: $APP_PACKAGE_NAME"
 echo "- Org: $ORG_ID"
 echo "- Flutter version: $FLUTTER_VERSION"
 
+echo "Preparing Flutter toolchain..."
 ensure_fvm
+echo "- FVM binary: $FVM_BIN"
 
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
-run_fvm use "$FLUTTER_VERSION" --force
+echo "Running: fvm use $FLUTTER_VERSION --force"
+if ! run_fvm use "$FLUTTER_VERSION" --force; then
+  echo "Error: fvm use failed. Please verify your Flutter version and FVM setup." >&2
+  echo "Try manually: $FVM_BIN use $FLUTTER_VERSION --force" >&2
+  exit 1
+fi
 
 create_args=(run_fvm flutter create . --org "$ORG_ID" --project-name "$APP_PACKAGE_NAME")
 if [[ "$FORCE" -eq 1 ]]; then
   create_args+=(--overwrite)
 fi
-"${create_args[@]}"
+
+echo "Running: flutter create"
+if ! "${create_args[@]}"; then
+  echo "Error: flutter create failed. Please verify Flutter SDK and project arguments." >&2
+  exit 1
+fi
 
 mkdir -p .vscode
 cat >.vscode/settings.json <<'JSON'
