@@ -2,6 +2,11 @@
 set -Eeuo pipefail
 trap 'echo "Error at line $LINENO: $BASH_COMMAND" >&2' ERR
 
+if [[ -z "${BASH_VERSION:-}" ]]; then
+  echo "Error: Please run this script with bash." >&2
+  exit 1
+fi
+
 usage() {
   cat <<'EOF'
 Bootstrap a new Flutter template project (script-first workflow).
@@ -178,10 +183,10 @@ discover_working_fvm() {
   fi
 
   if command -v which >/dev/null 2>&1; then
-    while IFS= read -r candidate; do
+    for candidate in $(which -a fvm 2>/dev/null); do
       [[ -n "$candidate" ]] || continue
       candidates+=("$candidate")
-    done < <(which -a fvm 2>/dev/null | awk '!seen[$0]++')
+    done
   fi
 
   if [[ -x "$pub_cache_fvm" ]]; then
