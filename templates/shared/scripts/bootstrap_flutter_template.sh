@@ -135,8 +135,8 @@ normalize_project_name() {
 
 append_path_once() {
   local target="$1"
-  [[ -n "$target" ]] || return
-  [[ -d "$target" ]] || return
+  [[ -n "$target" ]] || return 0
+  [[ -d "$target" ]] || return 0
   case ":$PATH:" in
     *":$target:"*) ;;
     *) export PATH="$PATH:$target" ;;
@@ -174,31 +174,33 @@ EOF
 }
 
 discover_working_fvm() {
-  local candidates=()
   local candidate=""
   local pub_cache_fvm="$HOME/.pub-cache/bin/fvm"
 
   if command -v fvm >/dev/null 2>&1; then
-    candidates+=("$(command -v fvm)")
-  fi
-
-  if command -v which >/dev/null 2>&1; then
-    for candidate in $(which -a fvm 2>/dev/null); do
-      [[ -n "$candidate" ]] || continue
-      candidates+=("$candidate")
-    done
-  fi
-
-  if [[ -x "$pub_cache_fvm" ]]; then
-    candidates+=("$pub_cache_fvm")
-  fi
-
-  for candidate in "${candidates[@]}"; do
+    candidate="$(command -v fvm)"
     if "$candidate" --version >/dev/null 2>&1; then
       FVM_BIN="$candidate"
       return 0
     fi
-  done
+  fi
+
+  if command -v which >/dev/null 2>&1; then
+    while IFS= read -r candidate; do
+      [[ -n "$candidate" ]] || continue
+      if "$candidate" --version >/dev/null 2>&1; then
+        FVM_BIN="$candidate"
+        return 0
+      fi
+    done <<< "$(which -a fvm 2>/dev/null || true)"
+  fi
+
+  if [[ -x "$pub_cache_fvm" ]]; then
+    if "$pub_cache_fvm" --version >/dev/null 2>&1; then
+      FVM_BIN="$pub_cache_fvm"
+      return 0
+    fi
+  fi
 
   return 1
 }
