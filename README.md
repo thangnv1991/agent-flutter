@@ -70,8 +70,9 @@ npm run release:major
 
 ## Installed files
 
+- Workspace utilities: `spec/`, `tool/`, `tools/`, `.vscode/tasks.json`
 - Trae: `.trae/` (skills/rules/scripts)
-- Codex: `.codex/` + `AGENTS.md`
+- Codex: `.codex/` (skills/rules/scripts) + `AGENTS.md`
 - Cursor: `.cursor/skills/`, `.cursor/rules/shared/`, `.cursor/scripts/`, `.cursor/rules/agent-flutter.mdc`
 - Windsurf: `.windsurf/skills/`, `.windsurf/rules/shared/`, `.windsurf/scripts/`, `.windsurf/rules/agent-flutter.md`
 - Cline: `.clinerules/skills/`, `.clinerules/rules/`, `.clinerules/scripts/`, `.clinerules/agent-flutter.md`

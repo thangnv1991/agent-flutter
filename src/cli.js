@@ -142,6 +142,7 @@ async function applyPack({
   mode,
 }) {
   const verb = mode === 'sync' ? 'Synced' : 'Installed';
+  const sharedUtilityDirs = ['spec', 'tool', 'tools'];
   const syncDirectory = async ({ sourceDir, destinationDir, label }) => {
     if ((await exists(destinationDir)) && !force) {
       console.log(`Skipped ${label} (exists): ${destinationDir}`);
@@ -155,13 +156,77 @@ async function applyPack({
     });
     console.log(`${verb} ${label}: ${destinationDir}`);
   };
+  const syncTemplateFile = async ({ sourcePath, destinationPath, label }) => {
+    if ((await exists(destinationPath)) && !force) {
+      console.log(`Skipped ${label} (exists): ${destinationPath}`);
+      return;
+    }
+    await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+    if (isTextFile(path.basename(sourcePath))) {
+      const raw = await fs.readFile(sourcePath, 'utf8');
+      const transformed = replaceProjectPlaceholders(raw, projectRoot);
+      await fs.writeFile(destinationPath, transformed, 'utf8');
+    } else {
+      await fs.copyFile(sourcePath, destinationPath);
+    }
+    await copyFileMode(sourcePath, destinationPath);
+    console.log(`${verb} ${label}: ${destinationPath}`);
+  };
+  const syncWorkspaceUtilities = async () => {
+    for (const dirName of sharedUtilityDirs) {
+      await syncDirectory({
+        sourceDir: path.join(templateRoot, dirName),
+        destinationDir: path.join(projectRoot, dirName),
+        label: `Workspace ${dirName}`,
+      });
+    }
+  };
+  const syncWorkspaceVscodeTasks = async () => {
+    const sourcePath = path.join(templateRoot, 'vscode', 'tasks.json');
+    if (!(await exists(sourcePath))) return;
+    const raw = await fs.readFile(sourcePath, 'utf8');
+    const transformed = replaceProjectPlaceholders(raw, projectRoot);
+    const targetPath = path.join(projectRoot, '.vscode', 'tasks.json');
+    const written = await writeTextFile(
+      targetPath,
+      transformed,
+      { force },
+    );
+    console.log(
+      written
+        ? `${verb} Workspace VS Code tasks: ${targetPath}`
+        : `Skipped Workspace VS Code tasks (exists): ${targetPath}`,
+    );
+  };
+  await syncWorkspaceUtilities();
+  await syncWorkspaceVscodeTasks();
 
   if (ideTargets.has('trae')) {
     const traeTarget = path.join(projectRoot, '.trae');
     await syncDirectory({
-      sourceDir: templateRoot,
-      destinationDir: traeTarget,
-      label: 'Trae adapter',
+      sourceDir: path.join(templateRoot, 'skills'),
+      destinationDir: path.join(traeTarget, 'skills'),
+      label: 'Trae skills',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'scripts'),
+      destinationDir: path.join(traeTarget, 'scripts'),
+      label: 'Trae scripts',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'rules'),
+      destinationDir: path.join(traeTarget, 'rules'),
+      label: 'Trae rules',
+    });
+    await syncTemplateFile({
+      sourcePath: path.join(templateRoot, '.ignore'),
+      destinationPath: path.join(traeTarget, '.ignore'),
+      label: 'Trae ignore',
+    });
+    await syncTemplateFile({
+      sourcePath: path.join(templateRoot, 'TEMPLATES.md'),
+      destinationPath: path.join(traeTarget, 'TEMPLATES.md'),
+      label: 'Trae templates',
     });
   }
 
@@ -334,7 +399,6 @@ async function applyPack({
       });
       console.log(`${verb} GitHub rules: ${githubRulesPath}`);
     }
-
     const githubPath = path.join(projectRoot, '.github', 'copilot-instructions.md');
     const written = await writeTextFile(
       githubPath,
