@@ -697,8 +697,7 @@ Use local instructions from \`.cursor\`.
 Priority:
 1. \`.cursor/rules/shared/ui.md\`
 2. \`.cursor/rules/shared/integration-api.md\`
-3. \`.cursor/rules/shared/document-workflow-function.md\`
-4. \`.cursor/rules/shared/unit-test.md\` and \`.cursor/rules/shared/widget-test.md\`
+3. \`.cursor/rules/shared/unit-test.md\` and \`.cursor/rules/shared/widget-test.md\`
 
 When a task matches a skill, load the corresponding \`SKILL.md\` under:
 \`.cursor/skills/<skill>/SKILL.md\`
