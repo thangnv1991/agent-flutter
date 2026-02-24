@@ -1,6 +1,6 @@
 {
   "name": "agent-flutter",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Portable Flutter skill/rule pack initializer for multiple AI IDEs.",
   "type": "module",
   "bin": {
