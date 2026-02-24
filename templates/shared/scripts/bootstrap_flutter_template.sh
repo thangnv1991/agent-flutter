@@ -205,19 +205,15 @@ run_fvm() {
 ensure_fvm() {
   append_path_once "$HOME/.pub-cache/bin"
 
-  if discover_working_fvm; then
-    return
+  if ! discover_working_fvm; then
+    ensure_dart
   fi
 
-  ensure_dart
-
-  if discover_working_fvm; then
-    return
+  if ! discover_working_fvm; then
+    echo "Installing FVM..."
+    dart pub global activate fvm >/dev/null
+    append_path_once "$HOME/.pub-cache/bin"
   fi
-
-  echo "Installing FVM..."
-  dart pub global activate fvm >/dev/null
-  append_path_once "$HOME/.pub-cache/bin"
 
   if ! discover_working_fvm; then
     echo "Error: FVM installation failed or fvm is not runnable." >&2
