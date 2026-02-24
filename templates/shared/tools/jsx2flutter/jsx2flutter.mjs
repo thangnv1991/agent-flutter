@@ -1,48 +1,20 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
 import { parse } from '@babel/parser'
 import traverseModule from '@babel/traverse'
 const traverse = traverseModule.default
 import postcss from 'postcss'
 import safeParser from 'postcss-safe-parser'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __dirname = path.dirname(new URL(import.meta.url).pathname)
 const require = createRequire(import.meta.url)
 let sass = null
 try {
   sass = require('sass')
 } catch {}
 
-function resolveProjectRoot() {
-  const fromCwd = process.cwd()
-  if (fs.existsSync(path.resolve(fromCwd, 'pubspec.yaml'))) {
-    return fromCwd
-  }
-  let current = __dirname
-  while (true) {
-    if (fs.existsSync(path.resolve(current, 'pubspec.yaml'))) {
-      return current
-    }
-    const parent = path.dirname(current)
-    if (parent === current) break
-    current = parent
-  }
-  return fromCwd
-}
-
-function readPackageName(projectRoot) {
-  const pubspecPath = path.resolve(projectRoot, 'pubspec.yaml')
-  if (!fs.existsSync(pubspecPath)) return 'app'
-  const content = fs.readFileSync(pubspecPath, 'utf8')
-  const matched = content.match(/^name:\s*([A-Za-z0-9_]+)/m)
-  return matched?.[1] || 'app'
-}
-
-const REPO_ROOT = resolveProjectRoot()
-const PROJECT_PACKAGE_NAME = readPackageName(REPO_ROOT)
+const REPO_ROOT = path.resolve(__dirname, '../..')
 const APP_ASSETS_FILE = path.resolve(REPO_ROOT, 'lib/src/utils/app_assets.dart')
 let ICONS_MAP = {}
 try {
@@ -745,6 +717,47 @@ function textAlignFromProps(props) {
   return null
 }
 
+function isInlineTextTag(tag) {
+  return tag === 'span' || tag === 'p'
+}
+
+function mergeTextStyles(baseStyle, ownStyle) {
+  if (baseStyle && ownStyle) return `(${baseStyle}).merge(${ownStyle})`
+  return ownStyle || baseStyle || null
+}
+
+function buildInlineTextSpans(el, cssMap, topClassName, skipRootDecoration, inheritedStyle = null) {
+  const className = getClassNameAttr(el)
+  const props = className && cssMap[className] ? cssMap[className] : {}
+  const style = mergeTextStyles(inheritedStyle, textStyleFromProps(props))
+  const spans = []
+  for (const c of el.children || []) {
+    if (isTextNode(c)) {
+      const text = c.value.trim()
+      if (!text) continue
+      const parts = [`text: ${toDartLiteral(text)}`]
+      if (style) parts.push(`style: ${style}`)
+      spans.push(`TextSpan(${parts.join(', ')})`)
+      continue
+    }
+    if (c.type !== 'JSXElement') continue
+    const childTag = jsxElementName(c).toLowerCase()
+    if (childTag === 'br') {
+      const parts = [`text: '\\n'`]
+      if (style) parts.push(`style: ${style}`)
+      spans.push(`TextSpan(${parts.join(', ')})`)
+      continue
+    }
+    if (isInlineTextTag(childTag)) {
+      spans.push(...buildInlineTextSpans(c, cssMap, topClassName, skipRootDecoration, style))
+      continue
+    }
+    const child = buildWidgetFromElement(c, cssMap, topClassName, skipRootDecoration)
+    spans.push(`WidgetSpan(child: ${child.widget})`)
+  }
+  return spans
+}
+
 function paddingFromProps(props) {
   const p = props['padding']
   const pt = props['padding-top']
@@ -881,15 +894,9 @@ function usesAppOwnedInputBackground(widget) {
   return normalized.startsWith('AppInput(') || normalized.startsWith('_GeneratedDateTimeField(')
 }
 
-function usesAppOwnedProgressBarBackground(widget) {
-  if (!widget) return false
-  const normalized = String(widget).trim()
-  return normalized.startsWith('AppProgressBar(')
-}
-
 function toDartLiteral(s) {
   const t = String(s || '')
-  return `'${t.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+  return `'${t.replace(/\\/g, '\\\\').replace(/\$/g, '\\$').replace(/'/g, "\\'")}'`
 }
 
 function isTextNode(node) {
@@ -1176,6 +1183,13 @@ function simplifySvgWidget(widget, size) {
   return `SizedBox(${width}${height}child: ${svgCall})`
 }
 
+function applySizeToWidget(widget, size) {
+  if (!size || (size.w == null && size.h == null)) return widget
+  const width = size.w != null ? `width: ${size.w}, ` : ''
+  const height = size.h != null ? `height: ${size.h}, ` : ''
+  return `SizedBox(${width}${height}child: ${widget})`
+}
+
 function shouldStripIconPositioning(size, position, rotate) {
   return (position != null || rotate != null) && isSmallIconSize(size)
 }
@@ -1297,92 +1311,6 @@ function buildRadioGroupWidgetFromElement(el, cssMap) {
   return `_GeneratedRadioGroup(${widgetArgs.join(', ')})`
 }
 
-function roundNumber(value, digits = 4) {
-  const factor = 10 ** digits
-  return Math.round(value * factor) / factor
-}
-
-function parsePaddingValues(props) {
-  const fromPadding = parseBoxValues(props['padding'])
-  if (fromPadding) return fromPadding
-  return {
-    top: cssPxToDouble(props['padding-top']) || 0,
-    right: cssPxToDouble(props['padding-right']) || 0,
-    bottom: cssPxToDouble(props['padding-bottom']) || 0,
-    left: cssPxToDouble(props['padding-left']) || 0,
-  }
-}
-
-function solidColorFromBackground(props) {
-  const bg = props['background-color'] || props['background']
-  if (!bg || /linear-gradient/i.test(String(bg))) return null
-  return cssColorToAppColor(bg)
-}
-
-function gradientOrSolidFromBackground(props) {
-  const bgSource = props['background-image'] || props['background']
-  if (bgSource && /linear-gradient/i.test(String(bgSource))) {
-    const gradient = parseLinearGradient(bgSource)
-    if (gradient) return gradient
-  }
-  const solid = solidColorFromBackground(props)
-  if (solid) return `LinearGradient(colors: [${solid}, ${solid}])`
-  return null
-}
-
-function buildProgressBarWidgetFromElement(el, cssMap) {
-  if (!el || !Array.isArray(el.children)) return null
-  const directElements = el.children.filter(c => c.type === 'JSXElement')
-  if (directElements.length !== 1) return null
-
-  const parentClass = getClassNameAttr(el)
-  const child = directElements[0]
-  const childClass = getClassNameAttr(child)
-  if (!parentClass || !childClass) return null
-
-  const parentProps = (cssMap && cssMap[parentClass]) ? cssMap[parentClass] : {}
-  const childProps = (cssMap && cssMap[childClass]) ? cssMap[childClass] : {}
-
-  const parentSize = normalizeGeneratedSize(sizeFromProps(parentProps))
-  const childSize = normalizeGeneratedSize(sizeFromProps(childProps))
-  if (childSize.w == null || childSize.h == null) return null
-
-  const hasProgressLikeBackground = !!solidColorFromBackground(parentProps)
-  const fillGradient = gradientOrSolidFromBackground(childProps)
-  if (!hasProgressLikeBackground || !fillGradient) return null
-
-  const padding = parsePaddingValues(parentProps)
-  let totalWidth = parentSize.w
-  if (totalWidth == null) {
-    const inferred = childSize.w + (padding.left || 0) + (padding.right || 0)
-    if (inferred > childSize.w) totalWidth = inferred
-  }
-  if (totalWidth == null || totalWidth <= 0) return null
-
-  let value = childSize.w / totalWidth
-  if (!Number.isFinite(value)) return null
-  if (value <= 0 || value > 1.05) return null
-  value = Math.max(0, Math.min(1, value))
-
-  const height = parentSize.h ?? childSize.h
-  if (height == null || height <= 0) return null
-
-  const backgroundColor = solidColorFromBackground(parentProps)
-  const radius = borderRadiusFromProps(parentProps) || borderRadiusFromProps(childProps)
-  const args = [
-    `value: ${roundNumber(value)}`,
-    `height: ${roundNumber(height, 2)}`,
-    `width: ${roundNumber(totalWidth, 2)}`,
-    `progressGradient: ${fillGradient}`,
-    'padding: 0',
-    'showDot: false',
-  ]
-  if (backgroundColor) args.push(`backgroundColor: ${backgroundColor}`)
-  if (radius) args.push(`borderRadius: ${radius}`)
-
-  return `AppProgressBar(${args.join(', ')})`
-}
-
 function wrapOverflowIfSized(body, size) {
   if (process.env.JSX2FLUTTER_ENABLE_OVERFLOW !== '1') return body
   if (!size || (!size.w && !size.h)) return body
@@ -1413,8 +1341,20 @@ function wrapOverflowIfSized(body, size) {
   return `OverflowBox(${overflowArgs.join(', ')}, child: ${body})`
 }
 
+function unwrapDirectFlexWidget(widgetExpr) {
+  let current = String(widgetExpr || '').trim()
+  while (/^(?:const\s+)?(?:Expanded|Flexible)\s*\(/.test(current)) {
+    const wrapperMatch = current.match(/^(?:const\s+)?(?:Expanded|Flexible)\s*\(([\s\S]*)\)$/)
+    if (!wrapperMatch) break
+    const childMatch = wrapperMatch[1].match(/\bchild:\s*([\s\S]+)$/)
+    if (!childMatch) break
+    current = childMatch[1].trim()
+  }
+  return current
+}
+
 function buildGeneratedRippleButton(titleExpr) {
-  return `RippleButton(title: ${titleExpr}, backgroundColor: Colors.transparent, minWidth: 0, padding: EdgeInsets.zero, onTap: () {})`
+  return `RippleButton(title: ${titleExpr}, backgroundColor: Colors.transparent,minWidth : 0, padding: EdgeInsets.zero, onTap: () {})`
 }
 
 function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
@@ -1469,12 +1409,6 @@ function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
         semanticWidget = radioGroupWidget
       }
     }
-    if (!semanticWidget) {
-      const progressBarWidget = buildProgressBarWidgetFromElement(el, cssMap)
-      if (progressBarWidget) {
-        semanticWidget = progressBarWidget
-      }
-    }
     if (!semanticWidget && looksLikeButtonClass(className)) {
       const buttonLabel = uniqueTexts(extractTextsFromElement(el, [])).find(Boolean)
       if (buttonLabel) {
@@ -1525,7 +1459,8 @@ function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
     const src = getAttr(el, 'src') || ''
     if (/^https?:\/\//.test(src)) {
       const widget = `Image.network(${toDartLiteral(src)}, fit: BoxFit.cover)`
-      return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${widget})` : widget, isAbsolute: !!position, position, zIndex, flexGrow, size }
+      const sized = applySizeToWidget(widget, size)
+      return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${sized})` : sized, isAbsolute: !!position, position, zIndex, flexGrow, size }
     }
     const local = resolveLocalAsset(src, className)
     if (local) {
@@ -1538,7 +1473,8 @@ function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
         const finalWidget = (rotate != null && !stripPlacement) ? `Transform.rotate(angle: ${rotate}, child: ${simplified})` : simplified
         return { widget: finalWidget, isAbsolute: stripPlacement ? false : !!position, position: stripPlacement ? null : position, zIndex, flexGrow, size }
       }
-      return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${widget})` : widget, isAbsolute: !!position, position, zIndex, flexGrow, size }
+      const sized = applySizeToWidget(widget, size)
+      return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${sized})` : sized, isAbsolute: !!position, position, zIndex, flexGrow, size }
     }
     const asset = assetForClassName(className)
     if (asset) {
@@ -1561,12 +1497,10 @@ function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
     return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${widget})` : widget, isAbsolute: !!position, position, zIndex, flexGrow, size }
   }
   if (tag === 'span' || tag === 'p') {
-    if (children.length === 1) {
-      const widget = children[0].widget
-      return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${widget})` : widget, isAbsolute: !!position, position, zIndex, flexGrow, size }
-    }
-    const widget = children.length
-      ? `Row(children: [${children.map(c => c.widget).join(', ')}])`
+    const align = textAlignFromProps(props)
+    const spans = buildInlineTextSpans(el, cssMap, topClassName, skipRootDecoration)
+    const widget = spans.length
+      ? `RichText(text: TextSpan(children: [${spans.join(', ')}])${align ? `, textAlign: ${align}` : ''})`
       : 'SizedBox.shrink()'
     return { widget: rotate != null ? `Transform.rotate(angle: ${rotate}, child: ${widget})` : widget, isAbsolute: !!position, position, zIndex, flexGrow, size }
   }
@@ -1575,27 +1509,24 @@ function buildWidgetFromElement(el, cssMap, topClassName, skipRootDecoration) {
   const flowKids = semanticWidget ? [] : children.filter(c => !c.isAbsolute)
   const absKids = semanticWidget ? [] : children.filter(c => c.isAbsolute).sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
   const inputOwnedWidget = usesAppOwnedInputBackground(semanticWidget)
-  const progressBarOwnedWidget = usesAppOwnedProgressBarBackground(semanticWidget)
   const wrappedInputOwnedWidget = !semanticWidget && flowKids.length === 1 && usesAppOwnedInputBackground(flowKids[0].widget)
-  const wrappedProgressBarOwnedWidget = !semanticWidget && flowKids.length === 1 && usesAppOwnedProgressBarBackground(flowKids[0].widget)
   const appOwnedInputWidget = inputOwnedWidget || wrappedInputOwnedWidget
-  const appOwnedProgressBarWidget = progressBarOwnedWidget || wrappedProgressBarOwnedWidget
-  const appOwnedStyledWidget = appOwnedInputWidget || appOwnedProgressBarWidget
-  const omitBackgroundColor = appOwnedStyledWidget
+  const omitBackgroundColor = appOwnedInputWidget
   const decoration = (skipRootDecoration && className === topClassName)
     ? null
     : boxDecorationFromProps(props, { omitBackgroundColor })
-  const effectivePadding = appOwnedStyledWidget ? null : padding
-  const effectiveDecoration = appOwnedStyledWidget ? null : decoration
+  const effectivePadding = appOwnedInputWidget ? null : padding
+  const effectiveDecoration = appOwnedInputWidget ? null : decoration
   const layoutSize = (appOwnedInputWidget && size) ? { ...size, h: null } : size
   const flex = flexConfigFromProps(props)
   let flowBody = semanticWidget
   if (!flowBody && flowKids.length) {
     if (flex) {
+      const isScrollableRoot = className === topClassName && process.env.JSX2FLUTTER_MODE !== 'classic'
       const alignSelf = String(props['align-self'] || '').toLowerCase()
-      const hasMainAxisSize = flex.isRow
+      const hasMainAxisSize = !isScrollableRoot && (flex.isRow
         ? (layoutSize.w != null || alignSelf === 'stretch')
-        : (layoutSize.h != null)
+        : (layoutSize.h != null))
       const gapLiteral = flex.gap ? (flex.isRow ? `${flex.gap}.width` : `${flex.gap}.height`) : null
       const baseKids = flowKids.map(c => {
         if (flex && c.flexGrow > 0 && hasMainAxisSize) {
@@ -1727,6 +1658,7 @@ function generateDart(ast, cssMap, outClassName, outPath) {
   const rootDeco = boxDecorationFromProps(rootProps)
   const mode = process.env.JSX2FLUTTER_MODE
   let inner = rootWidget?.widget || 'const SizedBox.shrink()'
+  inner = unwrapDirectFlexWidget(inner)
   let finalRoot
   if (mode === 'classic') {
     finalRoot = inner
@@ -1752,35 +1684,31 @@ function generateDart(ast, cssMap, outClassName, outPath) {
   const usesCheckbox = finalRoot.includes('_GeneratedCheckbox(') || finalRoot.includes('AppCheckbox(')
   const usesRippleButton = finalRoot.includes('RippleButton(')
   const usesTextGradient = finalRoot.includes('AppTextGradient(')
-  const usesProgressBar = finalRoot.includes('AppProgressBar(')
   const usesGetWidth = finalRoot.includes('Get.width')
   const imports = [
     "import 'package:flutter/material.dart';",
-    `import 'package:${PROJECT_PACKAGE_NAME}/src/utils/app_colors.dart';`,
-    `import 'package:${PROJECT_PACKAGE_NAME}/src/extensions/int_extensions.dart';`,
+    "import 'package:link_home/src/utils/app_colors.dart';",
+    "import 'package:link_home/src/extensions/int_extensions.dart';",
     "import 'package:flutter_svg/flutter_svg.dart';",
-    `import 'package:${PROJECT_PACKAGE_NAME}/src/utils/app_assets.dart';`,
+    "import 'package:link_home/src/utils/app_assets.dart';",
   ]
   if (usesInput) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/app_input.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/app_input.dart';")
   }
   if (usesDateTimeField) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/app_input_full_time.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/app_input_full_time.dart';")
   }
   if (usesRadio) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/app_radio_button.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/app_radio_button.dart';")
   }
   if (usesCheckbox) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/base/checkbox/app_checkbox.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/base/checkbox/app_checkbox.dart';")
   }
   if (usesRippleButton) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/base/ripple_button.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/base/ripple_button.dart';")
   }
   if (usesTextGradient) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/app_text_gradient.dart';`)
-  }
-  if (usesProgressBar) {
-    imports.push(`import 'package:${PROJECT_PACKAGE_NAME}/src/ui/widgets/app_progressbar.dart';`)
+    imports.push("import 'package:link_home/src/ui/widgets/app_text_gradient.dart';")
   }
   if (usesGetWidth) {
     imports.push("import 'package:get/get.dart';")

@@ -74,3 +74,30 @@ Finalize this feature:
 - Screenshot evidence: [No UI OR before/after]
 - Paired with: [Solo OR name]
 ```
+
+---
+
+## **5. Refactor Converted UI (Post-Convert)**
+
+Use this when code comes from convert script and needs production refactor:
+
+```text
+Refactor converted UI:
+- Source file: [e.g. lib/src/ui/home_demo_figma/home_demo_figma_page.dart]
+- Feature name: [e.g. home_demo]
+- Keep exact Figma visual: [yes/no]
+- Needs API integration now?: [yes/no]
+- Normalize/rename convert assets?: [yes/no]
+- Commit now?: [yes/no]
+- Push now?: [yes/no]
+- Create PR now?: [yes/no]
+- Priority fixes: [naming, localization, App* widgets, token cleanup, asset-rename, overflow]
+```
+
+Expected behavior:
+1. Apply `ui-refactor-convert.md` + `ui.md`.
+2. Rename generated classes/files to semantic names.
+3. Normalize convert-generated asset folder and names, then update `AppAssets` usages.
+4. Replace hardcoded style/string with tokens + localization.
+5. Extract components and pass UI correctness gates.
+6. Ask and execute in order: commit -> push -> create PR.

@@ -21,7 +21,7 @@ This is the required "done" flow before feature handoff.
 6. If answer is `yes`, push branch to remote.
 7. Ask user explicitly: `Do you want me to create PR now? (yes/no)`
 8. If answer is `yes`, create PR with mandatory template sections.
-9. If any answer is `no`, stop at that step and return current status.
+9. If answer is `no` at any step, stop at that step and return current status.
 
 If any step is skipped, feature is not considered complete.
 
@@ -48,6 +48,6 @@ PR must follow `.github/pull_request_template.md` and include all sections:
 
 ## 6. Agent Behavior
 - After finishing UI/API tasks, agent must ask in order: commit -> push -> create PR.
-- Agent must execute only steps explicitly confirmed by user (`yes`).
+- Agent executes only steps explicitly confirmed by user (`yes`).
 - If user confirms all steps, agent returns PR URL as final output.
-- If user declines at any step, agent stops and returns current repository status.
+- If user declines at any step, agent stops and returns repository status.
