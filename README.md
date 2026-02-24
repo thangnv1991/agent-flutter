@@ -70,7 +70,7 @@ npm run release:major
 
 ## Installed files
 
-- Workspace utilities: `spec/`, `tool/`, `tools/`, `.vscode/tasks.json`
+- Workspace utilities: `tool/`, `tools/`, `.vscode/tasks.json`
 - Trae: `.trae/` (skills/rules/scripts)
 - Codex: `.codex/` (skills/rules/scripts) + `AGENTS.md`
 - Cursor: `.cursor/skills/`, `.cursor/rules/shared/`, `.cursor/scripts/`, `.cursor/rules/agent-flutter.mdc`

@@ -142,7 +142,7 @@ async function applyPack({
   mode,
 }) {
   const verb = mode === 'sync' ? 'Synced' : 'Installed';
-  const sharedUtilityDirs = ['spec', 'tool', 'tools'];
+  const sharedUtilityDirs = ['tool', 'tools'];
   const syncDirectory = async ({ sourceDir, destinationDir, label }) => {
     if ((await exists(destinationDir)) && !force) {
       console.log(`Skipped ${label} (exists): ${destinationDir}`);
