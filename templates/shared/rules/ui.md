@@ -14,6 +14,14 @@ alwaysApply: false
 - **Shadows**: Normalize `BoxShadow` closest to CSS box-shadow; do not change blur/spread arbitrarily.
 - **Backgrounds**: Use `DecorationImage` + appropriate `BoxFit` (cover/contain) and correct alignment.
 
+### **UI Correctness Gate (Priority P1)**
+- Every new/updated screen must pass visual + behavioral correctness, not only "looks similar".
+- Required state coverage for each screen: `loading`, `success`, `empty`, `error` (and `permission/unauthorized` if applicable).
+- Required responsive check: at least widths `320`, `390`, `430`.
+- Required accessibility check: text scale `1.0` and `1.3` without overflow/clipping.
+- No layout overflow warnings are allowed in debug console.
+- Tap targets should remain usable (recommended minimum 44x44 when interactive).
+
 ### **Overrides (Per-Component)**
 - App* widgets must allow overriding tokens: `size`, `radius`, `padding/margin`, `backgroundColor`, `textStyle`, `iconSize`, `constraints`.
 - Defaults must come from tokens (`AppStyles`, `AppColors`, `AppDimensions`) and act only as fallbacks; do not hardcode.
@@ -91,6 +99,16 @@ alwaysApply: false
   - **No dynamic data in UI**: Pages/components MUST receive typed models via constructor/BLoC state; do not hardcode demo lists in widgets.
   - **Demo/Mock Data Location**: Keep all demo/sample data in `lib/src/utils/app_demo_data.dart` only. Import from there when previewing or testing UI.
 - **Reuse-first**: Before creating a new model, check the [Model Registry](../../spec/model-registry.md) and follow [Dart Model Reuse Skill](../skills/dart-model-reuse/SKILL.md). Prefer extending existing models (optional fields) or composition over duplication.
+- **Model Correctness Gate (Priority P1)**:
+  - Each model class must state purpose/source in class doc (Request/Response/UI).
+  - Do not use `dynamic`/`Object?` for API payload fields unless contract truly allows unknown schema.
+  - Required contract fields must not silently fallback to fake defaults (`''`, `0`, `false`) in `fromJson`.
+  - Nullable/non-nullable must match backend contract.
+  - Date/number parsing must use guarded conversion (`DateTime.tryParse`, safe numeric casting).
+  - UI layer must consume typed UI/domain model only, not raw response map/json.
+- **Mapper Boundary (Required)**:
+  - If API response shape differs from UI needs, map in repository or mapper layer (`lib/src/core/mapper/`).
+  - Widgets and page blocs must not parse JSON directly.
 
 ### **E. Composition & State**
 - **State**: Default to `StatelessWidget`. Use `StatefulWidget` only for local UI logic (animations, focus).
@@ -147,6 +165,7 @@ Follow these steps when creating a new UI screen:
 - Check Figma/Design.
 - Identify reusable components -> Are they in `lib/src/ui/widgets`?
 - Identify unique components -> Plan to put them in `components/`.
+- Define UI state matrix before coding: loading/success/empty/error + action states (enabled/disabled).
 
 ### **Step 2: Scaffolding**
 - Create the folder structure (See [Lib Src Architecture Skill](../skills/flutter-standard-lib-src-architecture/SKILL.md)):
@@ -157,6 +176,11 @@ Follow these steps when creating a new UI screen:
 ### **Step 3: Data Modeling (If API involved)**
 - Create Request model in `lib/src/core/model/request/`.
 - Create Response model in `lib/src/core/model/response/`.
+- Validate each model against API contract before UI wiring:
+  - Required vs nullable fields are correct.
+  - Enum/status values are represented safely (enum or controlled constants).
+  - No silent fallback for required fields.
+  - Update `spec/model-registry.md` when adding/changing model.
 
 ### **Step 4: Logic & Binding**
 - Create the Controller/Bloc in `interactor/` (See [Bloc Skill](../skills/flutter-bloc-state-management/SKILL.md)).
@@ -174,9 +198,13 @@ Follow these steps when creating a new UI screen:
   - Use `AppColors` / `AppStyles`.
   - Use `App*` widgets.
   - Use `LocaleKey.my_key.tr` for text.
-- **Radius & Icon**:
+ - **Radius & Icon**:
   - If Figma requires radius = 14, **must** use `BorderRadius.circular(14)` at the corresponding component.
   - Icon 24×24; if framed, use container 40×40/44×44 per Figma.
+ - **Behavioral Correctness (STRICT)**:
+   - Implement and render all required states from Step 1 (loading/success/empty/error...).
+   - Avoid overflow on small width and long localization strings.
+   - UI must not depend on mock constants inside widget tree for production flow.
  - **Documentation Comments (STRICT)**:
    - Add top-of-class `///` description for every Page and Component, summarizing its purpose and main actions.
    - Generator reads these docs to build `spec/ui-workflow.md` (run `dart run tool/generate_ui_workflow_spec.dart`).
@@ -190,7 +218,7 @@ Follow these steps when creating a new UI screen:
      ```
 
 ### **Step 7: Component Extraction**
-- **Rule**: If a widget block is > 50 lines or reused twice, extract it to `components/` (See [Idiomatic Flutter Skill](../skills/idiomatic-flutter/SKILL.md)).
+- **Rule**: If a widget block is > 50 lines or reused twice, extract it to `components/` (See [Flutter UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
 - Keep the main `build()` method clean and readable.
 
 ### **Step 8: Route Registration (Choose One)**
@@ -257,6 +285,14 @@ Follow these steps when creating a new UI screen:
 - [ ] Page broken down into `components/`?
 - [ ] Logic separated into `interactor/`?
 - [ ] **Data Models Separated?** (Request/Response in `core/model/`)
+- [ ] **Model Correctness Gate passed?** (required/nullable/enum/date/number mapping validated)
+- [ ] **No hidden fallback defaults for required fields?** (`fromJson` does not hide bad contract)
+- [ ] **Mapper Boundary respected?** (UI/Bloc does not parse raw JSON/Map)
+- [ ] **Model Registry Updated?** (`spec/model-registry.md` reflects new/changed models)
+- [ ] **UI Correctness Gate passed?** (loading/success/empty/error implemented and verified)
+- [ ] **Responsive check passed?** (320/390/430 widths)
+- [ ] **Accessibility text scale check passed?** (`1.0` and `1.3` no overflow/clipping)
+- [ ] **No debug overflow/error logs from layout?**
 - [ ] File naming matches `<feature>_<type>.dart`?
 - [ ] **Route Registered?**
   - [ ] If Full Screen: Added to `AppPages`?

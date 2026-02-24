@@ -51,6 +51,9 @@ If any item is missing, stop implementation and request contract clarification f
 - UI/domain-only models: `lib/src/core/model/`
 - Never pass raw `Map<String, dynamic>` across UI layers for non-trivial APIs.
 - Reuse-first: check existing models before creating new ones.
+- Required API fields must not silently fallback to fake defaults in `fromJson`.
+- Nullable/non-nullable and enum values must match backend contract explicitly.
+- Date/number parsing must be guarded (safe parse/cast), not optimistic cast.
 
 ### D. Repository Boundary
 - All remote calls must be wrapped by repository classes in `lib/src/core/repository/`.
@@ -83,6 +86,11 @@ If any item is missing, stop implementation and request contract clarification f
 - Prefer typed fields and safe nullability.
 - Add parser methods (`fromJson/toJson`) consistently.
 - Apply reuse/evolution checklist from [dart-model-reuse](../skills/dart-model-reuse/SKILL.md).
+- Validate model correctness against contract:
+  - Required/optional fields match schema.
+  - Enum/status values are constrained.
+  - No hidden fallback defaults for required fields.
+  - Update `spec/model-registry.md` for any model additions/changes.
 
 ### Step 4: Implement Repository Method
 - Repository extends/reuses `Api`.
@@ -107,6 +115,7 @@ If any item is missing, stop implementation and request contract clarification f
 - UI reads bloc state and renders loading/error/success.
 - No API parsing logic in widget tree.
 - All strings shown from API errors must pass localization policy in [getx-localization-standard](../skills/getx-localization-standard/SKILL.md).
+- UI should consume repository-mapped typed models only (not raw response JSON/map).
 
 ## 5. Minimal Reference Pattern
 
@@ -137,6 +146,9 @@ class FeatureRepository extends Api {
 ## 7. Verification Checklist Before PR
 - [ ] Endpoint added in `api_url.dart` and consumed from repository only.
 - [ ] Request/response models are separated and typed.
+- [ ] Model correctness validated against API contract (required/nullable/enum/date/number).
+- [ ] No hidden fallback defaults for required contract fields in `fromJson`.
+- [ ] UI/Bloc consumes typed models only (no raw JSON/map parsing).
 - [ ] Bloc uses `PageState` lifecycle correctly.
 - [ ] All displayed text/error is localized via `LocaleKey`.
 - [ ] Flavor run verified at least on staging command.
