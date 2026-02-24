@@ -52,3 +52,22 @@ Refactor this page: [Path to file]
 - Replace raw widgets with `App*` widgets.
 - Fix hardcoded strings/colors.
 ```
+
+---
+
+## **4. Finalize Feature (Commit + Push + PR)**
+
+Use this after completing UI/API work to trigger CI/CD rule and PR creation:
+
+```text
+Finalize this feature:
+- Branch name: [e.g. feat/login-session-timeout]
+- Commit message: [e.g. feat(auth): handle session timeout]
+- Base branch: [e.g. dev]
+- PR title: [e.g. feat(auth): handle session timeout]
+- Feature summary: [...]
+- UI summary: [...]
+- Reviewer notes: [...]
+- Screenshot evidence: [No UI OR before/after]
+- Paired with: [Solo OR name]
+```

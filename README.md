@@ -76,4 +76,4 @@ npm run release:major
 - Cursor: `.cursor/skills/`, `.cursor/rules/shared/`, `.cursor/scripts/`, `.cursor/rules/agent-flutter.mdc`
 - Windsurf: `.windsurf/skills/`, `.windsurf/rules/shared/`, `.windsurf/scripts/`, `.windsurf/rules/agent-flutter.md`
 - Cline: `.clinerules/skills/`, `.clinerules/rules/`, `.clinerules/scripts/`, `.clinerules/agent-flutter.md`
-- GitHub: `.github/skills/`, `.github/rules/`, `.github/scripts/`, `.github/copilot-instructions.md`
+- GitHub: `.github/skills/`, `.github/rules/`, `.github/scripts/`, `.github/copilot-instructions.md`, `.github/pull_request_template.md`, `.github/workflows/pr-template-gate.yml`

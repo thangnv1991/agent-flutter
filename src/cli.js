@@ -399,6 +399,25 @@ async function applyPack({
       });
       console.log(`${verb} GitHub rules: ${githubRulesPath}`);
     }
+
+    const githubPrTemplateSource = path.join(templateRoot, 'github', 'pull_request_template.md');
+    if (await exists(githubPrTemplateSource)) {
+      await syncTemplateFile({
+        sourcePath: githubPrTemplateSource,
+        destinationPath: path.join(projectRoot, '.github', 'pull_request_template.md'),
+        label: 'GitHub PR template',
+      });
+    }
+
+    const githubPrGateSource = path.join(templateRoot, 'github', 'workflows', 'pr-template-gate.yml');
+    if (await exists(githubPrGateSource)) {
+      await syncTemplateFile({
+        sourcePath: githubPrGateSource,
+        destinationPath: path.join(projectRoot, '.github', 'workflows', 'pr-template-gate.yml'),
+        label: 'GitHub PR gate workflow',
+      });
+    }
+
     const githubPath = path.join(projectRoot, '.github', 'copilot-instructions.md');
     const written = await writeTextFile(
       githubPath,
@@ -697,7 +716,8 @@ Use local instructions from \`.cursor\`.
 Priority:
 1. \`.cursor/rules/shared/ui.md\`
 2. \`.cursor/rules/shared/integration-api.md\`
-3. \`.cursor/rules/shared/unit-test.md\` and \`.cursor/rules/shared/widget-test.md\`
+3. \`.cursor/rules/shared/ci-cd-pr.md\`
+4. \`.cursor/rules/shared/unit-test.md\` and \`.cursor/rules/shared/widget-test.md\`
 
 When a task matches a skill, load the corresponding \`SKILL.md\` under:
 \`.cursor/skills/<skill>/SKILL.md\`
@@ -717,6 +737,7 @@ Required order:
 2. If task matches a skill, load \`.windsurf/skills/<skill>/SKILL.md\`.
 3. For new project scaffolding, run \`bash .windsurf/scripts/bootstrap_flutter_template.sh\`.
 4. Keep spec documentation synchronized after UI/API changes.
+5. For completed UI/API features, follow \`.windsurf/rules/shared/ci-cd-pr.md\` before handoff.
 `;
 }
 
@@ -731,6 +752,7 @@ Execution checklist:
 3. For new project scaffolding, run \`bash .clinerules/scripts/bootstrap_flutter_template.sh\`.
 4. Preserve Flutter architecture conventions and localization requirements.
 5. Update docs/specs after behavior changes.
+6. For completed UI/API features, follow \`.clinerules/rules/ci-cd-pr.md\` before handoff.
 `;
 }
 
@@ -745,6 +767,7 @@ Follow this order when generating code:
 3. For new project scaffolding, run \`bash .github/scripts/bootstrap_flutter_template.sh\`.
 4. Keep architecture, localization, and UI conventions aligned with local instructions.
 5. Update specs/docs when UI/API behavior changes.
+6. For completed UI/API features, follow \`.github/rules/ci-cd-pr.md\` before final handoff.
 `;
 }
 
