@@ -288,6 +288,7 @@ cat >.vscode/settings.json <<'JSON'
 JSON
 
 run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
+run_fvm flutter pub add flutter_keyboard_visibility:^6.0.0 cached_network_image:^3.3.1 flutter_inappwebview:^6.1.5 pin_code_fields:^8.0.1 gif:^2.3.0
 run_fvm flutter pub add common_widget --git-url https://github.com/tuan-urani/common_widget --git-ref main
 run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
@@ -376,13 +377,192 @@ EOF
 
 cat >lib/src/utils/app_colors.dart <<'EOF'
 import 'package:flutter/material.dart';
+import '../extensions/color_extension.dart';
 
 class AppColors {
-  AppColors._();
+  // ===========================================================================
+  // PRIMARY
+  // ===========================================================================
+  static const Color primary = Color(0xFF84C93F);
+  static const Color primaryLight = Color(0xFF5CC7A0);
 
-  static const Color primary = Color(0xFF1F6FEB);
-  static const Color textPrimary = Color(0xFF1F2937);
+  /// Alpha variants
+  static const Color primaryAlpha10 = Color(0x1A84C93F);
+
+  // Backward compatibility
+  static const Color color84C93F = primaryAlpha10;
+  static const Color color1A84C93F = primaryAlpha10;
+
+  // ===========================================================================
+  // SECONDARY
+  // ===========================================================================
+  static const Color secondary1 = Color(0xFFCAE7B4);
+  static const Color secondary2 = Color(0xFFE6F4EC);
+
+  // ===========================================================================
+  // NEUTRAL / BLACK
+  // ===========================================================================
+  static const Color black = Color(0xFF000000);
+
+  // ===========================================================================
+  // NEUTRAL / WHITE
+  // ===========================================================================
   static const Color white = Color(0xFFFFFFFF);
+  static const Color transparent = Color(0x00000000);
+
+  // ===========================================================================
+  // STATUS
+  // ===========================================================================
+  static const Color success = Color(0xFF4CAF50);
+  static const Color warning = Color(0xFFFFC107);
+  static const Color error = Color(0xFFF44336);
+  static const Color info = Color(0xFF2196F3);
+
+  // ===========================================================================
+  // TEXT
+  // ===========================================================================
+  static const Color textPrimary = Color(0xFF212121);
+  static const Color textDisabled = Color(0xFFC0C0C0);
+  static const Color textInverse = white;
+
+  static const greyF3 = Color(0xFFF3F3F3);
+  static const color2D7DD2 = Color(0xFF2D7DD2);
+  static const color1D2410 = Color(0xFF1D2410);
+  static const color484848 = Color(0xFF484848);
+  static const color1C274C = Color(0xFF1C274C);
+  static const colorFFF4F2 = Color(0xFFFFF4F2);
+  static const colorF5F7FA = Color(0xFFF5F7FA);
+  static const colorE6F7ED = Color(0xFFE6F7ED);
+  static const color667394 = Color(0xFF667394);
+  static const colorFF9800 = Color(0xFFFF9800);
+  static const colorB8BCC6 = Color(0xFFB8BCC6);
+  static const colorF2F4F7 = Color(0xFFF2F4F7);
+  static const colorF9FAFB = Color(0xFFF9FAFB);
+  static const colorE1E1E1 = Color(0xFFE1E1E1);
+  static const colorE3F2D9 = Color(0xFFE3F2D9);
+  static const colorEEEDE9 = Color(0xFFEEEDE9);
+  static const color333333 = Color(0xFF333333);
+  static const colorEFF8DD = Color(0xFFEFF8DD);
+  static const color475467 = Color(0xFF475467);
+  static const colorE8EDF5 = Color(0xFFE8EDF5);
+  static const colorF4F4F4 = Color(0xFFF4F4F4);
+  static const color131A29 = Color(0xFF131A29);
+  static const colorD1E8BE = Color(0xFFD1E8BE);
+  static const colorE6FAD2 = Color(0xFFE6FAD2);
+  static const colorDAFFE0 = Color(0xFFDAFFE0);
+  static const color0F000000 = Color(0x0F000000);
+  static const colorFAFAFA = Color(0xFFFAFAFA);
+  static const colorF8F1DD = Color(0xFFF8F1DD);
+  static const colorB7B7B7 = Color(0xFFB7B7B7);
+  static const colorFF8C42 = Color(0xFFFF8C42);
+  static const color1AFF8C42 = Color(0x1AFF8C42);
+  static const colorF1D2BC = Color(0xFFF1D2BC);
+  static const colorDFE4F5 = Color(0xFFDFE4F5);
+  static const colorF39702 = Color(0xFFF39702);
+  static const colorFB1B8D1 = Color(0xFFB1B8D1);
+  static const colorF64748B = Color(0xFF64748B);
+  static const colorFEF4056 = Color(0xFFEF4056);
+  static const colorF586AA6 = Color(0xFF586AA6);
+  static const colorFDEF1BC = Color(0xFFDEF1BC);
+  static const color101828 = Color(0xFF101828);
+  static const colorFFE53E = Color(0xFFFFE53E);
+  static const colorEEEAE8 = Color(0xFFEEEAE8);
+  static const colorEF4056 = Color(0xFFEF4056);
+  static const color1AEF4056 = Color(0x1AEF4056);
+  static const colorFF5B42 = Color(0xFFFF5B42);
+  static const color33FF5B42 = Color(0x33FF5B42);
+  static const color0095FF = Color(0xFF0095FF);
+  static const color1A0095FF = Color(0x1A0095FF);
+  static const color88CF66 = Color(0xFF88CF66);
+  static const color1A88CF66 = Color(0x1A88CF66);
+  static const color1A2D7DD2 = Color(0x1A2D7DD2);
+  static const colorFEFEFE = Color(0xFFFEFEFE);
+  static const colorDCDFEB = Color(0xFFDCDFEB);
+  static const color80586AA6 = Color(0x80586AA6);
+  static const colorF59AEF9 = Color(0xFF59AEF9);
+  static const colorFE4F3FF = Color(0xFFE4F3FF);
+  static const colorF6B7280 = Color(0xFF6B7280);
+  static const colorFE6F4EC = Color(0xFFE6F4EC);
+  static const colorFBFC9DE = Color(0xFFBFC9DE);
+  static const colorFE7EDF3 = Color(0xFFE7EDF3);
+  static const colorFDCDFEB = Color(0xFFDCDFEB);
+  static const colorF101828 = Color(0xFF101828);
+  static const colorF646C72 = Color(0xFF646C72);
+  static const colorF3F7FC9 = Color(0xFF3F7FC9);
+  static const colorFA1AEBE = Color(0xFFA1AEBE);
+  static const colorEAF9E6 = Color(0xFFEAF9E6);
+  static const colorC8E6C9 = Color(0xFFC8E6C9);
+  static const colorE3F2FD = Color(0xFFE3F2FD);
+  static const colorFFF3E0 = Color(0xFFFFF3E0);
+  static const colorF3E5F5 = Color(0xFFF3E5F5);
+  static const color9C27B0 = Color(0xFF9C27B0);
+  static const colorFAF9F8 = Color(0xFFFAF9F8);
+  static const colorCDCDCD = Color(0xFFCDCDCD);
+  static const colorD9DEED = Color(0xFFD9DEED);
+  static const colorFDFFFD = Color(0xFFFDFFFD);
+  static const colorEBEDF0 = Color(0xFFEBEDF0);
+  static const colorF8FAFB = Color(0xFFF8FAFB);
+  static const colorFFEAEA = Color(0xFFFFEAEA);
+  static const colorEAECF0 = Color(0xFFEAECF0);
+  static const colorFFE2D0 = Color(0xFFFFE2D0);
+
+  // ===========================================================================
+  // BACKGROUND
+  // ===========================================================================
+  static const Color background = white;
+  static const Color backgroundSecondary = Color(0xFFF5F5F5);
+  static const Color backgroundDisabled = Color(0xFFE5E5E5);
+  static const Color backgroundOverlay = Color(0x80000000);
+
+  // ===========================================================================
+  // BORDER
+  // ===========================================================================
+  static const Color border = Color(0xFFE0E0E0);
+  static const Color borderLight = Color(0xFFEEEEEE);
+  static const Color borderDark = Color(0xFFBDBDBD);
+
+  // ===========================================================================
+  // GRADIENTS
+  // ===========================================================================
+  static LinearGradient primaryGradient() => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primary, primaryLight],
+  );
+
+  static LinearGradient secondaryGradient() => const LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primary, secondary1],
+  );
+
+  static LinearGradient primaryTextGradient() =>
+      const LinearGradient(colors: [primary, primaryLight]);
+
+  static LinearGradient fadeGradient() => LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [black.withOpacityX(0.3), black],
+  );
+
+  static LinearGradient disabledGradient() =>
+      const LinearGradient(colors: [border, borderDark]);
+
+  static LinearGradient primaryBackgroundGradient() => const LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFF7F7FA), Color(0xFFF2F1EC)],
+  );
+
+  // ===========================================================================
+  // UTIL
+  // ===========================================================================
+  static Color fromHex(String hex) {
+    final buffer = StringBuffer();
+    if (hex.length == 6 || hex.length == 7) buffer.write('ff');
+    buffer.write(hex.replaceFirst('#', ''));
+    return Color(int.parse(buffer.toString(), radix: 16));
+  }
 }
 EOF
 
@@ -392,13 +572,131 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppStyles {
-  AppStyles._();
+  // Font Families
+  static const String fontFamily = 'ZenMaruGothic';
+  static const String fontHiraginoKakuProW6 = 'ZenMaruGothic';
+  static const String fontHiraginoKakuStd = 'ZenMaruGothic';
 
-  static const TextStyle h1 = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-  );
+  static TextStyle h40({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w700,
+    double? height,
+  }) => _textStyle(45.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  // Text Styles
+  static TextStyle h1({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w700,
+    double? height,
+  }) => _textStyle(32.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle h2({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w600,
+    double? height,
+  }) => _textStyle(28.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle headlineLarge({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w700,
+    double? height,
+  }) => _textStyle(36.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle titleLarge({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w700,
+    double? height,
+  }) => _textStyle(26.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle h3({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w600,
+    double? height,
+  }) => _textStyle(24.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle h4({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w500,
+    double? height,
+  }) => _textStyle(20.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle h5({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w500,
+    double? height,
+  }) => _textStyle(18.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle bodyLarge({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w400,
+    double? height,
+  }) => _textStyle(16.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle bodyMedium({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w400,
+    double? height,
+  }) => _textStyle(14.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle bodySmall({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w400,
+    double? height,
+  }) => _textStyle(12.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  static TextStyle caption({
+    String fontFamily = fontFamily,
+    Color color = AppColors.black,
+    FontWeight fontWeight = FontWeight.w400,
+    double? height,
+  }) => _textStyle(10.0, color, fontWeight, height, fontFamily: fontFamily);
+
+  // Button Styles
+  static TextStyle buttonLarge({
+    String fontFamily = fontFamily,
+    Color color = AppColors.white,
+    FontWeight fontWeight = FontWeight.w600,
+  }) => _textStyle(16.0, color, fontWeight, 1.5, fontFamily: fontFamily);
+
+  static TextStyle buttonMedium({
+    String fontFamily = fontFamily,
+    Color color = AppColors.white,
+    FontWeight fontWeight = FontWeight.w500,
+  }) => _textStyle(14.0, color, fontWeight, 1.4, fontFamily: fontFamily);
+
+  static TextStyle buttonSmall({
+    String fontFamily = fontFamily,
+    Color color = AppColors.white,
+    FontWeight fontWeight = FontWeight.w500,
+  }) => _textStyle(12.0, color, fontWeight, 1.3, fontFamily: fontFamily);
+
+  // Helper method for text styles
+  static TextStyle _textStyle(
+    double fontSize,
+    Color color,
+    FontWeight fontWeight,
+    double? height, {
+    required String fontFamily,
+  }) {
+    return TextStyle(
+      fontFamily: fontFamily,
+      fontSize: fontSize,
+      color: color,
+      fontWeight: fontWeight,
+      height: height,
+    );
+  }
 }
 EOF
 
@@ -407,6 +705,134 @@ class AppAssets {
   AppAssets._();
 
   // Define image/icon paths here.
+}
+EOF
+
+cat >lib/src/utils/app_dimensions.dart <<'EOF'
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+class AppDimensions {
+  /// Use for padding
+  static const double top = 14;
+  static const double marginLeft = 14;
+  static const double marginRight = 14;
+  static const EdgeInsets sideMargins = EdgeInsets.symmetric(horizontal: 14);
+  static const EdgeInsets allMargins = EdgeInsets.all(14);
+
+  static const EdgeInsetsGeometry paddingTop = EdgeInsets.only(top: 280);
+
+  static const BorderRadius borderRadius = BorderRadius.all(
+    Radius.circular(12),
+  );
+
+  static double bottomBarHeight = 80 + Get.mediaQuery.padding.bottom;
+  static double iconPlusBottomBarHeight = 40;
+  static double totalBottomBarHeight =
+      bottomBarHeight + iconPlusBottomBarHeight;
+}
+EOF
+
+cat >lib/src/extensions/color_extension.dart <<'EOF'
+import 'dart:ui';
+
+extension ColorOpacity on Color {
+  Color withOpacityX(double value) => withAlpha((value * 255).toInt());
+}
+EOF
+
+cat >lib/src/extensions/int_extensions.dart <<'EOF'
+import 'package:flutter/material.dart';
+
+/// Tai cac UI, Widget sau nay chi can go 6.height or 6.width thay vi phai ghi SizedBox(width: 6), SizedBox(height: 6)
+extension IntExtensions on int? {
+  /// Leaves given height of space
+  Widget get height => SizedBox(height: this?.toDouble());
+
+  /// Leaves given width of space
+  Widget get width => SizedBox(width: this?.toDouble());
+
+  /// Radius
+  Radius get radius => Radius.circular(this?.toDouble() ?? 0);
+
+  /// BorderRadius All
+  BorderRadius get borderRadiusAll =>
+      BorderRadius.circular(this?.toDouble() ?? 0);
+
+  /// BorderRadius Top
+  BorderRadius get borderRadiusTop =>
+      BorderRadius.vertical(top: (this ?? 0).radius);
+
+  /// BorderRadius Bottom
+  BorderRadius get borderRadiusBottom =>
+      BorderRadius.vertical(bottom: (this ?? 0).radius);
+
+  /// BorderRadius Left
+  BorderRadius get borderRadiusLeft =>
+      BorderRadius.horizontal(left: (this ?? 0).radius);
+
+  /// BorderRadius Right
+  BorderRadius get borderRadiusRight =>
+      BorderRadius.horizontal(right: (this ?? 0).radius);
+
+  /// Padding all
+  EdgeInsets get paddingAll => EdgeInsets.all((this ?? 0).toDouble());
+
+  /// Padding horizontal
+  EdgeInsets get paddingHorizontal =>
+      EdgeInsets.symmetric(horizontal: (this ?? 0).toDouble());
+
+  /// Padding vertical
+  EdgeInsets get paddingVertical =>
+      EdgeInsets.symmetric(vertical: (this ?? 0).toDouble());
+
+  EdgeInsets get paddingLeft => EdgeInsets.only(left: (this ?? 0).toDouble());
+
+  EdgeInsets get paddingRight => EdgeInsets.only(right: (this ?? 0).toDouble());
+
+  EdgeInsets get paddingTop => EdgeInsets.only(top: (this ?? 0).toDouble());
+
+  EdgeInsets get paddingBottom =>
+      EdgeInsets.only(bottom: (this ?? 0).toDouble());
+}
+EOF
+
+cat >lib/src/extensions/string_extensions.dart <<'EOF'
+extension NullableStringExtensions on String? {
+  /// Returns [true] if this nullable string is either null or empty.
+  bool isNullOrEmpty() {
+    return this?.trim().isEmpty ?? true;
+  }
+}
+
+extension StringExtensions on String {
+  bool get isNetworkUri => startsWith('http');
+
+  bool get isSvg => endsWith('.svg');
+
+  /// Capitalize first letter of the word
+  String get inFirstLetterCaps =>
+      length > 0 ? '${this[0].toUpperCase()}${substring(1)}' : '';
+
+  /// Capitalize first letter of each word
+  String get capitalizeFirstOfEach => replaceAll(
+    RegExp(' +'),
+    ' ',
+  ).split(' ').map((str) => str.inFirstLetterCaps).join(' ');
+
+  /// Format thousands number to convert to double.
+  String get formatThousands => replaceAll(',', '');
+}
+EOF
+
+cat >lib/src/extensions/double_extensions.dart <<'EOF'
+extension DoubleNullExtension on double? {
+  bool get isNotNull => this != null;
+}
+
+extension DouleWithoutDecimal on double? {
+  String get withoutDecimal =>
+      this != null ? (this! % 1 == 0 ? '${this!.toInt()}' : '$this') : '0';
 }
 EOF
 
