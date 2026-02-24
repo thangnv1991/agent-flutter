@@ -26,6 +26,24 @@ npx agent-flutter@latest sync --ide trae,codex,github
 npx agent-flutter@latest list --cwd /path/to/project
 ```
 
+## Bootstrap new Flutter project (script)
+
+After `init`, run the script from the IDE-specific folder:
+
+```bash
+bash .trae/scripts/bootstrap_flutter_template.sh
+```
+
+Examples by IDE:
+
+```bash
+bash .codex/scripts/bootstrap_flutter_template.sh
+bash .cursor/scripts/bootstrap_flutter_template.sh
+bash .windsurf/scripts/bootstrap_flutter_template.sh
+bash .clinerules/scripts/bootstrap_flutter_template.sh
+bash .github/scripts/bootstrap_flutter_template.sh
+```
+
 ## Publish to npm (one-time setup, Trusted Publishing)
 
 1. On npm package settings, add a **Trusted publisher**:
@@ -52,10 +70,9 @@ npm run release:major
 
 ## Installed files
 
-- Shared pack (for Trae/Codex/Cursor/Windsurf/Cline): `.agent-flutter/`
-- Trae: `.trae/`
-- Codex: `AGENTS.md`
-- Cursor: `.cursor/rules/agent-flutter.mdc`
-- Windsurf: `.windsurf/rules/agent-flutter.md`
-- Cline: `.clinerules/agent-flutter.md`
-- GitHub: `.github/skills/`, `.github/rules/`, `.github/copilot-instructions.md`
+- Trae: `.trae/` (skills/rules/scripts)
+- Codex: `.codex/` + `AGENTS.md`
+- Cursor: `.cursor/skills/`, `.cursor/rules/shared/`, `.cursor/scripts/`, `.cursor/rules/agent-flutter.mdc`
+- Windsurf: `.windsurf/skills/`, `.windsurf/rules/shared/`, `.windsurf/scripts/`, `.windsurf/rules/agent-flutter.md`
+- Cline: `.clinerules/skills/`, `.clinerules/rules/`, `.clinerules/scripts/`, `.clinerules/agent-flutter.md`
+- GitHub: `.github/skills/`, `.github/rules/`, `.github/scripts/`, `.github/copilot-instructions.md`

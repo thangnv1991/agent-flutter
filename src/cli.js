@@ -13,9 +13,9 @@ Usage:
   npx agent-flutter@latest list [--cwd <project_dir>]
 
 Commands:
-  init   Install shared Flutter skills/rules and IDE adapters.
-  sync   Update installed shared pack and adapters from latest template.
-  list   Print available skills/rules from the shared pack.
+  init   Install Flutter skills/rules/scripts for selected IDE adapters.
+  sync   Update installed adapters from latest template.
+  list   Print available skills/rules from package template.
 `;
 
 export async function runCli(argv) {
@@ -142,45 +142,50 @@ async function applyPack({
   mode,
 }) {
   const verb = mode === 'sync' ? 'Synced' : 'Installed';
-  const sharedPackIdes = new Set(['trae', 'codex', 'cursor', 'windsurf', 'cline']);
-  const requiresSharedPack = [...ideTargets].some((ide) => sharedPackIdes.has(ide));
-  const sharedTarget = path.join(projectRoot, '.agent-flutter');
-  if (requiresSharedPack) {
-    if ((await exists(sharedTarget)) && !force) {
-      console.log(`Using existing shared pack: ${sharedTarget}`);
-    } else {
-      await copyTemplateDirectory({
-        sourceDir: templateRoot,
-        destinationDir: sharedTarget,
-        projectRoot,
-        force: true,
-      });
-      console.log(`${verb} shared pack: ${sharedTarget}`);
+  const syncDirectory = async ({ sourceDir, destinationDir, label }) => {
+    if ((await exists(destinationDir)) && !force) {
+      console.log(`Skipped ${label} (exists): ${destinationDir}`);
+      return;
     }
-  }
+    await copyTemplateDirectory({
+      sourceDir,
+      destinationDir,
+      projectRoot,
+      force: true,
+    });
+    console.log(`${verb} ${label}: ${destinationDir}`);
+  };
 
   if (ideTargets.has('trae')) {
     const traeTarget = path.join(projectRoot, '.trae');
-    if ((await exists(traeTarget)) && !force) {
-      console.log(`Skipped Trae adapter (exists): ${traeTarget}`);
-    } else {
-      await copyTemplateDirectory({
-        sourceDir: templateRoot,
-        destinationDir: traeTarget,
-        projectRoot,
-        force: true,
-      });
-      console.log(`${verb} Trae adapter: ${traeTarget}`);
-    }
+    await syncDirectory({
+      sourceDir: templateRoot,
+      destinationDir: traeTarget,
+      label: 'Trae adapter',
+    });
   }
 
-  const metadataSource = requiresSharedPack
-    ? sharedTarget
-    : templateRoot;
-  const skills = await loadSkillMetadata(path.join(metadataSource, 'skills'));
-  const rules = await loadRuleMetadata(path.join(metadataSource, 'rules'));
+  const skills = await loadSkillMetadata(path.join(templateRoot, 'skills'));
+  const rules = await loadRuleMetadata(path.join(templateRoot, 'rules'));
 
   if (ideTargets.has('codex')) {
+    const codexRoot = path.join(projectRoot, '.codex');
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'skills'),
+      destinationDir: path.join(codexRoot, 'skills'),
+      label: 'Codex skills',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'scripts'),
+      destinationDir: path.join(codexRoot, 'scripts'),
+      label: 'Codex scripts',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'rules'),
+      destinationDir: path.join(codexRoot, 'rules'),
+      label: 'Codex rules',
+    });
+
     const agentsPath = path.join(projectRoot, 'AGENTS.md');
     const written = await writeTextFile(
       agentsPath,
@@ -189,6 +194,7 @@ async function applyPack({
         projectName: path.basename(projectRoot),
         skills,
         rules,
+        packRoot: '.codex',
       }),
       { force },
     );
@@ -200,6 +206,22 @@ async function applyPack({
   }
 
   if (ideTargets.has('cursor')) {
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'skills'),
+      destinationDir: path.join(projectRoot, '.cursor', 'skills'),
+      label: 'Cursor skills',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'scripts'),
+      destinationDir: path.join(projectRoot, '.cursor', 'scripts'),
+      label: 'Cursor scripts',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'rules'),
+      destinationDir: path.join(projectRoot, '.cursor', 'rules', 'shared'),
+      label: 'Cursor rules',
+    });
+
     const cursorPath = path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc');
     const written = await writeTextFile(
       cursorPath,
@@ -214,6 +236,22 @@ async function applyPack({
   }
 
   if (ideTargets.has('windsurf')) {
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'skills'),
+      destinationDir: path.join(projectRoot, '.windsurf', 'skills'),
+      label: 'Windsurf skills',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'scripts'),
+      destinationDir: path.join(projectRoot, '.windsurf', 'scripts'),
+      label: 'Windsurf scripts',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'rules'),
+      destinationDir: path.join(projectRoot, '.windsurf', 'rules', 'shared'),
+      label: 'Windsurf rules',
+    });
+
     const windsurfPath = path.join(projectRoot, '.windsurf', 'rules', 'agent-flutter.md');
     const written = await writeTextFile(
       windsurfPath,
@@ -228,6 +266,22 @@ async function applyPack({
   }
 
   if (ideTargets.has('cline')) {
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'skills'),
+      destinationDir: path.join(projectRoot, '.clinerules', 'skills'),
+      label: 'Cline skills',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'scripts'),
+      destinationDir: path.join(projectRoot, '.clinerules', 'scripts'),
+      label: 'Cline scripts',
+    });
+    await syncDirectory({
+      sourceDir: path.join(templateRoot, 'rules'),
+      destinationDir: path.join(projectRoot, '.clinerules', 'rules'),
+      label: 'Cline rules',
+    });
+
     const clinePath = path.join(projectRoot, '.clinerules', 'agent-flutter.md');
     const written = await writeTextFile(
       clinePath,
@@ -253,6 +307,19 @@ async function applyPack({
         force: true,
       });
       console.log(`${verb} GitHub skills: ${githubSkillsPath}`);
+    }
+
+    const githubScriptsPath = path.join(projectRoot, '.github', 'scripts');
+    if ((await exists(githubScriptsPath)) && !force) {
+      console.log(`Skipped GitHub scripts (exists): ${githubScriptsPath}`);
+    } else {
+      await copyTemplateDirectory({
+        sourceDir: path.join(templateRoot, 'scripts'),
+        destinationDir: githubScriptsPath,
+        projectRoot,
+        force: true,
+      });
+      console.log(`${verb} GitHub scripts: ${githubScriptsPath}`);
     }
 
     const githubRulesPath = path.join(projectRoot, '.github', 'rules');
@@ -285,7 +352,12 @@ async function applyPack({
 async function detectInstalledIdeTargets(projectRoot) {
   const detected = new Set();
   if (await exists(path.join(projectRoot, '.trae'))) detected.add('trae');
-  if (await exists(path.join(projectRoot, 'AGENTS.md'))) detected.add('codex');
+  if (
+    (await exists(path.join(projectRoot, 'AGENTS.md')))
+    || (await exists(path.join(projectRoot, '.codex', 'skills')))
+  ) {
+    detected.add('codex');
+  }
   if (await exists(path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc'))) {
     detected.add('cursor');
   }
@@ -305,11 +377,7 @@ async function detectInstalledIdeTargets(projectRoot) {
 }
 
 async function runList(options) {
-  const projectRoot = path.resolve(options.get('cwd', process.cwd()));
-  const sharedTarget = path.join(projectRoot, '.agent-flutter');
-  const templateRoot = await exists(sharedTarget)
-    ? sharedTarget
-    : path.join(getPackageRoot(), 'templates', 'shared');
+  const templateRoot = path.join(getPackageRoot(), 'templates', 'shared');
 
   const skills = await loadSkillMetadata(path.join(templateRoot, 'skills'));
   const rules = await loadRuleMetadata(path.join(templateRoot, 'rules'));
@@ -407,6 +475,7 @@ async function copyTemplateEntries({ sourceDir, destinationDir, projectRoot }) {
     } else {
       await fs.copyFile(fromPath, toPath);
     }
+    await copyFileMode(fromPath, toPath);
   }
 }
 
@@ -518,23 +587,29 @@ function parseFrontmatter(content) {
   return data;
 }
 
-function buildCodexAgents({ projectRoot, projectName, skills, rules }) {
+function buildCodexAgents({
+  projectRoot,
+  projectName,
+  skills,
+  rules,
+  packRoot,
+}) {
   const lines = [];
   lines.push(`# AGENTS.md instructions for ${projectName}`);
   lines.push('');
-  lines.push('## Agent Flutter Shared Pack');
-  lines.push('This project uses a shared local pack installed at `.agent-flutter`.');
+  lines.push('## Agent Flutter Local Pack');
+  lines.push(`This project uses local instructions installed at \`${packRoot}\`.`);
   lines.push('');
   lines.push('### Available skills');
   for (const skill of skills) {
     lines.push(
-      `- ${skill.slug}: ${skill.description || 'No description'} (file: ${toPosixPath(skill.path)})`,
+      `- ${skill.slug}: ${skill.description || 'No description'} (file: ${path.posix.join(packRoot, 'skills', skill.slug, 'SKILL.md')})`,
     );
   }
   lines.push('');
   lines.push('### Available rules');
   for (const rule of rules) {
-    lines.push(`- ${rule.file} (file: ${toPosixPath(rule.path)})`);
+    lines.push(`- ${rule.file} (file: ${path.posix.join(packRoot, 'rules', rule.file)})`);
   }
   lines.push('');
   lines.push('### Trigger rules');
@@ -544,64 +619,69 @@ function buildCodexAgents({ projectRoot, projectName, skills, rules }) {
   lines.push('');
   lines.push('### Location policy');
   lines.push(`- Project root: ${toPosixPath(projectRoot)}`);
-  lines.push('- Shared pack root: `.agent-flutter`');
-  lines.push('- Do not duplicate skill/rule content outside the shared pack unless required.');
+  lines.push(`- Local pack root: \`${packRoot}\``);
   return `${lines.join('\n')}\n`;
 }
 
 function buildCursorRule() {
   return `---
-description: Agent Flutter shared skills and rules
+description: Agent Flutter local skills and rules
 alwaysApply: false
 ---
-Use shared instructions from \`.agent-flutter\`.
+Use local instructions from \`.cursor\`.
 
 Priority:
-1. \`.agent-flutter/rules/ui.md\`
-2. \`.agent-flutter/rules/integration-api.md\`
-3. \`.agent-flutter/rules/document-workflow-function.md\`
-4. \`.agent-flutter/rules/unit-test.md\` and \`.agent-flutter/rules/widget-test.md\`
+1. \`.cursor/rules/shared/ui.md\`
+2. \`.cursor/rules/shared/integration-api.md\`
+3. \`.cursor/rules/shared/document-workflow-function.md\`
+4. \`.cursor/rules/shared/unit-test.md\` and \`.cursor/rules/shared/widget-test.md\`
 
 When a task matches a skill, load the corresponding \`SKILL.md\` under:
-\`.agent-flutter/skills/<skill>/SKILL.md\`
+\`.cursor/skills/<skill>/SKILL.md\`
+
+For new project scaffolding, run:
+\`bash .cursor/scripts/bootstrap_flutter_template.sh\`
 `;
 }
 
 function buildWindsurfRule() {
   return `# Agent Flutter Rules
 
-Use the shared rule/skill pack at \`.agent-flutter\`.
+Use local instructions in \`.windsurf\`.
 
 Required order:
-1. Apply relevant files in \`.agent-flutter/rules/\`.
-2. If task matches a skill, load \`.agent-flutter/skills/<skill>/SKILL.md\`.
-3. Keep spec documentation synchronized after UI/API changes.
+1. Apply relevant files in \`.windsurf/rules/shared/\`.
+2. If task matches a skill, load \`.windsurf/skills/<skill>/SKILL.md\`.
+3. For new project scaffolding, run \`bash .windsurf/scripts/bootstrap_flutter_template.sh\`.
+4. Keep spec documentation synchronized after UI/API changes.
 `;
 }
 
 function buildClineRule() {
   return `# Agent Flutter Cline Rule
 
-This repository uses shared instructions in \`.agent-flutter\`.
+This repository uses local instructions in \`.clinerules\`.
 
 Execution checklist:
-1. Read matching rule files under \`.agent-flutter/rules\`.
-2. Apply matching skills from \`.agent-flutter/skills\`.
-3. Preserve Flutter architecture conventions and localization requirements.
-4. Update docs/specs after behavior changes.
+1. Read matching rule files under \`.clinerules/rules\`.
+2. Apply matching skills from \`.clinerules/skills\`.
+3. For new project scaffolding, run \`bash .clinerules/scripts/bootstrap_flutter_template.sh\`.
+4. Preserve Flutter architecture conventions and localization requirements.
+5. Update docs/specs after behavior changes.
 `;
 }
 
 function buildGithubCopilotInstructions() {
   return `# Agent Flutter Copilot Instructions
 
-This repository uses local instruction packs in \`.github/skills\` and \`.github/rules\`.
+This repository uses local instruction packs in \`.github/skills\`, \`.github/rules\`, and \`.github/scripts\`.
 
 Follow this order when generating code:
 1. Read applicable files in \`.github/rules/\`.
 2. If task matches a skill, read \`.github/skills/<skill>/SKILL.md\`.
-3. Keep architecture, localization, and UI conventions aligned with the shared pack.
-4. Update specs/docs when UI/API behavior changes.
+3. For new project scaffolding, run \`bash .github/scripts/bootstrap_flutter_template.sh\`.
+4. Keep architecture, localization, and UI conventions aligned with local instructions.
+5. Update specs/docs when UI/API behavior changes.
 `;
 }
 
@@ -619,6 +699,15 @@ async function safeStat(filePath) {
     return await fs.stat(filePath);
   } catch {
     return null;
+  }
+}
+
+async function copyFileMode(fromPath, toPath) {
+  try {
+    const fromStat = await fs.stat(fromPath);
+    await fs.chmod(toPath, fromStat.mode);
+  } catch {
+    // ignore permission propagation failures on unsupported filesystems
   }
 }
 
