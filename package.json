@@ -1,0 +1,33 @@
+{
+  "name": "agent-flutter",
+  "version": "0.1.0",
+  "description": "Portable Flutter skill/rule pack initializer for multiple AI IDEs.",
+  "type": "module",
+  "bin": {
+    "agent-flutter": "./bin/agent-flutter.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates",
+    "README.md"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "flutter",
+    "skills",
+    "rules",
+    "trae",
+    "cursor",
+    "codex"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node ./bin/agent-flutter.js",
+    "init:demo": "node ./bin/agent-flutter.js init --cwd ../tmp-agent-flutter-demo --ide all --force"
+  }
+}
