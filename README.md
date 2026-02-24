@@ -20,6 +20,8 @@ By default `init` installs adapters for all supported IDEs:
 ```bash
 npx agent-flutter@latest init --ide all --cwd /path/to/project --force
 npx agent-flutter@latest init --ide trae,codex
+npx agent-flutter@latest sync
+npx agent-flutter@latest sync --ide trae,codex
 npx agent-flutter@latest list --cwd /path/to/project
 ```
 

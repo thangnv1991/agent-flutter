@@ -9,10 +9,12 @@ agent-flutter
 
 Usage:
   npx agent-flutter@latest init [--ide all|trae,codex,cursor,windsurf,cline] [--cwd <project_dir>] [--force]
+  npx agent-flutter@latest sync [--ide all|trae,codex,cursor,windsurf,cline] [--cwd <project_dir>]
   npx agent-flutter@latest list [--cwd <project_dir>]
 
 Commands:
   init   Install shared Flutter skills/rules and IDE adapters.
+  sync   Update installed shared pack and adapters from latest template.
   list   Print available skills/rules from the shared pack.
 `;
 
@@ -28,6 +30,9 @@ export async function runCli(argv) {
   switch (command) {
     case 'init':
       await runInit(options);
+      return;
+    case 'sync':
+      await runSync(options);
       return;
     case 'list':
       await runList(options);
@@ -82,6 +87,61 @@ async function runInit(options) {
   const ideTargets = resolveIdeTargets(options.get('ide', 'all'));
   const force = options.hasFlag('force');
 
+  await applyPack({
+    templateRoot,
+    projectRoot,
+    ideTargets,
+    force,
+    mode: 'install',
+  });
+
+  console.log('');
+  console.log('Done.');
+  console.log('Use --force to overwrite existing adapters.');
+}
+
+async function runSync(options) {
+  const packageRoot = getPackageRoot();
+  const templateRoot = path.join(packageRoot, 'templates', 'shared');
+  await assertDirExists(templateRoot, `Shared template not found: ${templateRoot}`);
+
+  const projectRoot = path.resolve(options.get('cwd', process.cwd()));
+  await assertDirExists(projectRoot, `Project directory not found: ${projectRoot}`);
+
+  let ideTargets;
+  const ideOption = options.get('ide', null);
+  if (ideOption) {
+    ideTargets = resolveIdeTargets(ideOption);
+  } else {
+    ideTargets = await detectInstalledIdeTargets(projectRoot);
+    if (ideTargets.size) {
+      console.log(`Detected adapters: ${[...ideTargets].join(', ')}`);
+    } else {
+      ideTargets = new Set(SUPPORTED_IDES);
+      console.log('No existing adapters detected. Syncing all adapters.');
+    }
+  }
+
+  await applyPack({
+    templateRoot,
+    projectRoot,
+    ideTargets,
+    force: true,
+    mode: 'sync',
+  });
+
+  console.log('');
+  console.log('Sync completed.');
+}
+
+async function applyPack({
+  templateRoot,
+  projectRoot,
+  ideTargets,
+  force,
+  mode,
+}) {
+  const verb = mode === 'sync' ? 'Synced' : 'Installed';
   const sharedTarget = path.join(projectRoot, '.agent-flutter');
   if ((await exists(sharedTarget)) && !force) {
     console.log(`Using existing shared pack: ${sharedTarget}`);
@@ -92,7 +152,7 @@ async function runInit(options) {
       projectRoot,
       force: true,
     });
-    console.log(`Installed shared pack: ${sharedTarget}`);
+    console.log(`${verb} shared pack: ${sharedTarget}`);
   }
 
   if (ideTargets.has('trae')) {
@@ -106,7 +166,7 @@ async function runInit(options) {
         projectRoot,
         force: true,
       });
-      console.log(`Installed Trae adapter: ${traeTarget}`);
+      console.log(`${verb} Trae adapter: ${traeTarget}`);
     }
   }
 
@@ -127,7 +187,7 @@ async function runInit(options) {
     );
     console.log(
       written
-        ? `Installed Codex adapter: ${agentsPath}`
+        ? `${verb} Codex adapter: ${agentsPath}`
         : `Skipped Codex adapter (exists): ${agentsPath}`,
     );
   }
@@ -141,7 +201,7 @@ async function runInit(options) {
     );
     console.log(
       written
-        ? `Installed Cursor adapter: ${cursorPath}`
+        ? `${verb} Cursor adapter: ${cursorPath}`
         : `Skipped Cursor adapter (exists): ${cursorPath}`,
     );
   }
@@ -155,7 +215,7 @@ async function runInit(options) {
     );
     console.log(
       written
-        ? `Installed Windsurf adapter: ${windsurfPath}`
+        ? `${verb} Windsurf adapter: ${windsurfPath}`
         : `Skipped Windsurf adapter (exists): ${windsurfPath}`,
     );
   }
@@ -169,14 +229,30 @@ async function runInit(options) {
     );
     console.log(
       written
-        ? `Installed Cline adapter: ${clinePath}`
+        ? `${verb} Cline adapter: ${clinePath}`
         : `Skipped Cline adapter (exists): ${clinePath}`,
     );
   }
+}
 
-  console.log('');
-  console.log('Done.');
-  console.log('Use --force to overwrite existing adapters.');
+async function detectInstalledIdeTargets(projectRoot) {
+  const checks = [
+    ['trae', path.join(projectRoot, '.trae')],
+    ['codex', path.join(projectRoot, 'AGENTS.md')],
+    ['cursor', path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc')],
+    ['windsurf', path.join(projectRoot, '.windsurf', 'rules', 'agent-flutter.md')],
+    ['cline', path.join(projectRoot, '.clinerules', 'agent-flutter.md')],
+  ];
+
+  const results = await Promise.all(
+    checks.map(async ([ide, targetPath]) => [ide, await exists(targetPath)]),
+  );
+
+  const detected = new Set();
+  for (const [ide, installed] of results) {
+    if (installed) detected.add(ide);
+  }
+  return detected;
 }
 
 async function runList(options) {
