@@ -288,6 +288,7 @@ cat >.vscode/settings.json <<'JSON'
 JSON
 
 run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
+run_fvm flutter pub add common_widget --git-url https://github.com/tuan-urani/common_widget --git-ref main
 run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
 mkdir -p \
@@ -574,6 +575,8 @@ EOF
 ensure_line_in_file .gitignore ".env"
 ensure_line_in_file .gitignore ".env.staging"
 ensure_line_in_file .gitignore ".env.prod"
+
+run_fvm dart run common_widget update
 
 if [[ -n "$FVM_BIN" ]]; then
   run_fvm dart format lib >/dev/null || true
