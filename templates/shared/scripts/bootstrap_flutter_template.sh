@@ -869,7 +869,10 @@ EOF
 
 cat >lib/src/enums/toast_type.dart <<'EOF'
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../extensions/int_extensions.dart';
+import '../locale/locale_key.dart';
 import '../utils/app_colors.dart';
 
 enum ToastType {
@@ -878,6 +881,31 @@ enum ToastType {
 
   final Color color;
   const ToastType(this.color);
+
+  Widget get icon {
+    IconData icon;
+    switch (this) {
+      case ToastType.success:
+        icon = Icons.check_circle_rounded;
+        break;
+      case ToastType.error:
+        icon = Icons.error_rounded;
+    }
+
+    return Padding(
+      padding: 20.paddingLeft,
+      child: Icon(icon, size: 40, color: color),
+    );
+  }
+
+  Widget get title {
+    switch (this) {
+      case ToastType.success:
+        return Text(LocaleKey.success.tr, style: TextStyle(color: color));
+      case ToastType.error:
+        return Text(LocaleKey.error.tr, style: TextStyle(color: color));
+    }
+  }
 }
 EOF
 
@@ -1010,6 +1038,8 @@ class LocaleKey {
 
   static const String homeTitle = 'home_title';
   static const String loginSessionExpires = 'loginSessionExpires';
+  static const String success = 'success';
+  static const String error = 'error';
   static const String ok = 'ok';
   static const String cancel = 'cancel';
   static const String widgetCancel = 'widgetCancel';
@@ -1023,6 +1053,8 @@ import 'locale_key.dart';
 final Map<String, String> enUs = <String, String>{
   LocaleKey.homeTitle: 'Home',
   LocaleKey.loginSessionExpires: 'Login session expires!',
+  LocaleKey.success: 'Success',
+  LocaleKey.error: 'Error',
   LocaleKey.ok: 'OK',
   LocaleKey.cancel: 'Cancel',
   LocaleKey.widgetCancel: 'Cancel',
@@ -1036,6 +1068,8 @@ import 'locale_key.dart';
 final Map<String, String> jaJp = <String, String>{
   LocaleKey.homeTitle: 'ホーム',
   LocaleKey.loginSessionExpires: 'ログインセッションが期限切れです！',
+  LocaleKey.success: '成功',
+  LocaleKey.error: 'エラー',
   LocaleKey.ok: 'OK',
   LocaleKey.cancel: 'キャンセル',
   LocaleKey.widgetCancel: 'キャンセル',
