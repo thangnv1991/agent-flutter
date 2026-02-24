@@ -142,17 +142,21 @@ async function applyPack({
   mode,
 }) {
   const verb = mode === 'sync' ? 'Synced' : 'Installed';
+  const sharedPackIdes = new Set(['trae', 'codex', 'cursor', 'windsurf', 'cline']);
+  const requiresSharedPack = [...ideTargets].some((ide) => sharedPackIdes.has(ide));
   const sharedTarget = path.join(projectRoot, '.agent-flutter');
-  if ((await exists(sharedTarget)) && !force) {
-    console.log(`Using existing shared pack: ${sharedTarget}`);
-  } else {
-    await copyTemplateDirectory({
-      sourceDir: templateRoot,
-      destinationDir: sharedTarget,
-      projectRoot,
-      force: true,
-    });
-    console.log(`${verb} shared pack: ${sharedTarget}`);
+  if (requiresSharedPack) {
+    if ((await exists(sharedTarget)) && !force) {
+      console.log(`Using existing shared pack: ${sharedTarget}`);
+    } else {
+      await copyTemplateDirectory({
+        sourceDir: templateRoot,
+        destinationDir: sharedTarget,
+        projectRoot,
+        force: true,
+      });
+      console.log(`${verb} shared pack: ${sharedTarget}`);
+    }
   }
 
   if (ideTargets.has('trae')) {
@@ -170,8 +174,11 @@ async function applyPack({
     }
   }
 
-  const skills = await loadSkillMetadata(path.join(sharedTarget, 'skills'));
-  const rules = await loadRuleMetadata(path.join(sharedTarget, 'rules'));
+  const metadataSource = requiresSharedPack
+    ? sharedTarget
+    : templateRoot;
+  const skills = await loadSkillMetadata(path.join(metadataSource, 'skills'));
+  const rules = await loadRuleMetadata(path.join(metadataSource, 'rules'));
 
   if (ideTargets.has('codex')) {
     const agentsPath = path.join(projectRoot, 'AGENTS.md');
@@ -235,6 +242,32 @@ async function applyPack({
   }
 
   if (ideTargets.has('github')) {
+    const githubSkillsPath = path.join(projectRoot, '.github', 'skills');
+    if ((await exists(githubSkillsPath)) && !force) {
+      console.log(`Skipped GitHub skills (exists): ${githubSkillsPath}`);
+    } else {
+      await copyTemplateDirectory({
+        sourceDir: path.join(templateRoot, 'skills'),
+        destinationDir: githubSkillsPath,
+        projectRoot,
+        force: true,
+      });
+      console.log(`${verb} GitHub skills: ${githubSkillsPath}`);
+    }
+
+    const githubRulesPath = path.join(projectRoot, '.github', 'rules');
+    if ((await exists(githubRulesPath)) && !force) {
+      console.log(`Skipped GitHub rules (exists): ${githubRulesPath}`);
+    } else {
+      await copyTemplateDirectory({
+        sourceDir: path.join(templateRoot, 'rules'),
+        destinationDir: githubRulesPath,
+        projectRoot,
+        force: true,
+      });
+      console.log(`${verb} GitHub rules: ${githubRulesPath}`);
+    }
+
     const githubPath = path.join(projectRoot, '.github', 'copilot-instructions.md');
     const written = await writeTextFile(
       githubPath,
@@ -250,22 +283,23 @@ async function applyPack({
 }
 
 async function detectInstalledIdeTargets(projectRoot) {
-  const checks = [
-    ['trae', path.join(projectRoot, '.trae')],
-    ['codex', path.join(projectRoot, 'AGENTS.md')],
-    ['cursor', path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc')],
-    ['windsurf', path.join(projectRoot, '.windsurf', 'rules', 'agent-flutter.md')],
-    ['cline', path.join(projectRoot, '.clinerules', 'agent-flutter.md')],
-    ['github', path.join(projectRoot, '.github', 'copilot-instructions.md')],
-  ];
-
-  const results = await Promise.all(
-    checks.map(async ([ide, targetPath]) => [ide, await exists(targetPath)]),
-  );
-
   const detected = new Set();
-  for (const [ide, installed] of results) {
-    if (installed) detected.add(ide);
+  if (await exists(path.join(projectRoot, '.trae'))) detected.add('trae');
+  if (await exists(path.join(projectRoot, 'AGENTS.md'))) detected.add('codex');
+  if (await exists(path.join(projectRoot, '.cursor', 'rules', 'agent-flutter.mdc'))) {
+    detected.add('cursor');
+  }
+  if (await exists(path.join(projectRoot, '.windsurf', 'rules', 'agent-flutter.md'))) {
+    detected.add('windsurf');
+  }
+  if (await exists(path.join(projectRoot, '.clinerules', 'agent-flutter.md'))) {
+    detected.add('cline');
+  }
+  if (
+    (await exists(path.join(projectRoot, '.github', 'copilot-instructions.md')))
+    || (await exists(path.join(projectRoot, '.github', 'skills')))
+  ) {
+    detected.add('github');
   }
   return detected;
 }
@@ -561,11 +595,11 @@ Execution checklist:
 function buildGithubCopilotInstructions() {
   return `# Agent Flutter Copilot Instructions
 
-This repository uses a shared local instruction pack in \`.agent-flutter\`.
+This repository uses local instruction packs in \`.github/skills\` and \`.github/rules\`.
 
 Follow this order when generating code:
-1. Read applicable files in \`.agent-flutter/rules/\`.
-2. If task matches a skill, read \`.agent-flutter/skills/<skill>/SKILL.md\`.
+1. Read applicable files in \`.github/rules/\`.
+2. If task matches a skill, read \`.github/skills/<skill>/SKILL.md\`.
 3. Keep architecture, localization, and UI conventions aligned with the shared pack.
 4. Update specs/docs when UI/API behavior changes.
 `;

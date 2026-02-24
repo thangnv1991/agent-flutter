@@ -52,10 +52,10 @@ npm run release:major
 
 ## Installed files
 
-- Shared pack: `.agent-flutter/`
+- Shared pack (for Trae/Codex/Cursor/Windsurf/Cline): `.agent-flutter/`
 - Trae: `.trae/`
 - Codex: `AGENTS.md`
 - Cursor: `.cursor/rules/agent-flutter.mdc`
 - Windsurf: `.windsurf/rules/agent-flutter.md`
 - Cline: `.clinerules/agent-flutter.md`
-- GitHub: `.github/copilot-instructions.md`
+- GitHub: `.github/skills/`, `.github/rules/`, `.github/copilot-instructions.md`
