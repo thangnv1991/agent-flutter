@@ -289,6 +289,7 @@ JSON
 
 run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
 run_fvm flutter pub add flutter_keyboard_visibility:^6.0.0 cached_network_image:^3.3.1 flutter_inappwebview:^6.1.5 pin_code_fields:^8.0.1 gif:^2.3.0
+run_fvm flutter pub add carousel_slider:^5.1.1 smooth_page_indicator:^2.0.1
 run_fvm flutter pub add common_widget --git-url https://github.com/tuan-urani/common_widget --git-ref main
 run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
@@ -704,7 +705,14 @@ cat >lib/src/utils/app_assets.dart <<'EOF'
 class AppAssets {
   AppAssets._();
 
-  // Define image/icon paths here.
+  static const String iconsInputRequiredSvg =
+      'assets/images/icons/input_required.svg';
+  static const String iconsChevronDownSvg =
+      'assets/images/icons/chevron down.svg';
+  static const String iconsRadioCheckSvg =
+      'assets/images/icons/radio_check.svg';
+  static const String iconsRadioUncheckSvg =
+      'assets/images/icons/radio_uncheck.svg';
 }
 EOF
 
@@ -798,6 +806,8 @@ extension IntExtensions on int? {
 EOF
 
 cat >lib/src/extensions/string_extensions.dart <<'EOF'
+import 'dart:io';
+
 extension NullableStringExtensions on String? {
   /// Returns [true] if this nullable string is either null or empty.
   bool isNullOrEmpty() {
@@ -809,6 +819,8 @@ extension StringExtensions on String {
   bool get isNetworkUri => startsWith('http');
 
   bool get isSvg => endsWith('.svg');
+
+  bool get isLocalPath => File(this).existsSync();
 
   /// Capitalize first letter of the word
   String get inFirstLetterCaps =>
@@ -869,6 +881,8 @@ class LocaleKey {
   LocaleKey._();
 
   static const String homeTitle = 'home_title';
+  static const String widgetCancel = 'widgetCancel';
+  static const String widgetConfirm = 'widgetConfirm';
 }
 EOF
 
@@ -877,6 +891,8 @@ import 'locale_key.dart';
 
 final Map<String, String> enUs = <String, String>{
   LocaleKey.homeTitle: 'Home',
+  LocaleKey.widgetCancel: 'Cancel',
+  LocaleKey.widgetConfirm: 'Confirm',
 };
 EOF
 
@@ -885,6 +901,8 @@ import 'locale_key.dart';
 
 final Map<String, String> jaJp = <String, String>{
   LocaleKey.homeTitle: 'ホーム',
+  LocaleKey.widgetCancel: 'キャンセル',
+  LocaleKey.widgetConfirm: '決定する',
 };
 EOF
 
