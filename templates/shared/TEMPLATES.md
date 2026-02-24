@@ -63,6 +63,9 @@ Use this after completing UI/API work to trigger CI/CD rule and PR creation:
 Finalize this feature:
 - Branch name: [e.g. feat/login-session-timeout]
 - Commit message: [e.g. feat(auth): handle session timeout]
+- Commit now?: [yes/no]
+- Push now?: [yes/no]
+- Create PR now?: [yes/no]
 - Base branch: [e.g. dev]
 - PR title: [e.g. feat(auth): handle session timeout]
 - Feature summary: [...]

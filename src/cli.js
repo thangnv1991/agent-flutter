@@ -724,6 +724,9 @@ When a task matches a skill, load the corresponding \`SKILL.md\` under:
 
 For new project scaffolding, run:
 \`bash .cursor/scripts/bootstrap_flutter_template.sh\`
+
+After finishing UI/API tasks, ask user in order:
+\`Commit now?\` -> \`Push now?\` -> \`Create PR now?\`
 `;
 }
 
@@ -737,7 +740,8 @@ Required order:
 2. If task matches a skill, load \`.windsurf/skills/<skill>/SKILL.md\`.
 3. For new project scaffolding, run \`bash .windsurf/scripts/bootstrap_flutter_template.sh\`.
 4. Keep spec documentation synchronized after UI/API changes.
-5. For completed UI/API features, follow \`.windsurf/rules/shared/ci-cd-pr.md\` before handoff.
+5. For completed UI/API features, follow \`.windsurf/rules/shared/ci-cd-pr.md\`.
+6. Ask user in order: \`Commit now?\` -> \`Push now?\` -> \`Create PR now?\`.
 `;
 }
 
@@ -752,7 +756,8 @@ Execution checklist:
 3. For new project scaffolding, run \`bash .clinerules/scripts/bootstrap_flutter_template.sh\`.
 4. Preserve Flutter architecture conventions and localization requirements.
 5. Update docs/specs after behavior changes.
-6. For completed UI/API features, follow \`.clinerules/rules/ci-cd-pr.md\` before handoff.
+6. For completed UI/API features, follow \`.clinerules/rules/ci-cd-pr.md\`.
+7. Ask user in order: \`Commit now?\` -> \`Push now?\` -> \`Create PR now?\`.
 `;
 }
 
@@ -767,7 +772,8 @@ Follow this order when generating code:
 3. For new project scaffolding, run \`bash .github/scripts/bootstrap_flutter_template.sh\`.
 4. Keep architecture, localization, and UI conventions aligned with local instructions.
 5. Update specs/docs when UI/API behavior changes.
-6. For completed UI/API features, follow \`.github/rules/ci-cd-pr.md\` before final handoff.
+6. For completed UI/API features, follow \`.github/rules/ci-cd-pr.md\`.
+7. Ask user in order: \`Commit now?\` -> \`Push now?\` -> \`Create PR now?\`.
 `;
 }
 

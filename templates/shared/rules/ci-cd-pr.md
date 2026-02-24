@@ -15,9 +15,13 @@ This is the required "done" flow before feature handoff.
    - `fvm flutter analyze`
    - Run related tests for the changed scope (unit/widget/integration when available).
 2. Ensure spec/docs are updated if behavior changed.
-3. Commit with clear scope and summary.
-4. Push branch to remote.
-5. Create PR with mandatory template sections.
+3. Ask user explicitly: `Do you want me to commit now? (yes/no)`
+4. If answer is `yes`, create commit with clear scope and summary.
+5. Ask user explicitly: `Do you want me to push now? (yes/no)`
+6. If answer is `yes`, push branch to remote.
+7. Ask user explicitly: `Do you want me to create PR now? (yes/no)`
+8. If answer is `yes`, create PR with mandatory template sections.
+9. If any answer is `no`, stop at that step and return current status.
 
 If any step is skipped, feature is not considered complete.
 
@@ -43,5 +47,7 @@ PR must follow `.github/pull_request_template.md` and include all sections:
 - Branch protection must require this check before merge.
 
 ## 6. Agent Behavior
-- After finishing UI/API tasks, agent must complete commit + push + PR creation.
-- Agent should return PR URL as final output for the task.
+- After finishing UI/API tasks, agent must ask in order: commit -> push -> create PR.
+- Agent must execute only steps explicitly confirmed by user (`yes`).
+- If user confirms all steps, agent returns PR URL as final output.
+- If user declines at any step, agent stops and returns current repository status.
