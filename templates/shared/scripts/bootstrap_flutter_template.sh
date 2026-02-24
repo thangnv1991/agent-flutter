@@ -237,6 +237,94 @@ ensure_line_in_file() {
   fi
 }
 
+configure_android_flavors() {
+  local android_app_id="$ORG_ID.$APP_PACKAGE_NAME"
+  local gradle_kts_file="android/app/build.gradle.kts"
+
+  if [[ ! -f "$gradle_kts_file" ]]; then
+    echo "Warning: Android Gradle Kotlin file not found, skip flavor config: $gradle_kts_file"
+    return 0
+  fi
+
+  cat >"$gradle_kts_file" <<EOF
+import java.io.File
+
+fun loadEnv(name: String): Map<String, String> {
+    val envFile = rootProject.file("../" + name)
+    val env = mutableMapOf<String, String>()
+
+    if (envFile.exists()) {
+        envFile.forEachLine { line ->
+            if (line.isNotBlank() && !line.startsWith("#") && line.contains("=")) {
+                val parts = line.split("=", limit = 2)
+                env[parts[0].trim()] = parts[1].trim()
+            }
+        }
+    }
+    return env
+}
+
+val stagingEnv = loadEnv(".env.staging")
+val prodEnv = loadEnv(".env.prod")
+
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("dev.flutter.flutter-gradle-plugin")
+}
+
+android {
+    namespace = "$android_app_id"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+
+    defaultConfig {
+        applicationId = "$android_app_id"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    flavorDimensions += "app"
+    productFlavors {
+        create("prod") {
+            dimension = "app"
+            resValue("string", "google_maps_api_key", prodEnv["GOOGLE_MAP_API_KEY"] ?: "")
+        }
+        create("staging") {
+            dimension = "app"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            resValue("string", "google_maps_api_key", stagingEnv["GOOGLE_MAP_API_KEY"] ?: "")
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+EOF
+
+  echo "Configured Android product flavors (prod/staging)."
+}
+
 PROJECT_NAME="$(prompt_required "$PROJECT_NAME" "Project name: ")"
 if [[ -z "$PROJECT_NAME" ]]; then
   echo "Error: project name is required." >&2
@@ -289,6 +377,8 @@ if ! "${create_args[@]}"; then
   echo "Error: flutter create failed. Please verify Flutter SDK and project arguments." >&2
   exit 1
 fi
+
+configure_android_flavors
 
 mkdir -p .vscode
 cat >.vscode/settings.json <<'JSON'
