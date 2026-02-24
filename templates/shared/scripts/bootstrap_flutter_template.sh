@@ -291,6 +291,7 @@ run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation 
 run_fvm flutter pub add flutter_keyboard_visibility:^6.0.0 cached_network_image:^3.3.1 flutter_inappwebview:^6.1.5 pin_code_fields:^8.0.1 gif:^2.3.0
 run_fvm flutter pub add carousel_slider:^5.1.1 smooth_page_indicator:^2.0.1
 run_fvm flutter pub add shared_preferences
+run_fvm flutter pub add percent_indicator:^4.2.2
 run_fvm flutter pub add common_widget --git-url https://github.com/tuan-urani/common_widget --git-ref main
 run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
@@ -857,6 +858,20 @@ cat >lib/src/ui/base/interactor/page_states.dart <<'EOF'
 enum PageState { initial, loading, failure, success }
 EOF
 
+cat >lib/src/enums/toast_type.dart <<'EOF'
+import 'package:flutter/material.dart';
+
+import '../utils/app_colors.dart';
+
+enum ToastType {
+  success(Colors.green),
+  error(AppColors.error);
+
+  final Color color;
+  const ToastType(this.color);
+}
+EOF
+
 cat >lib/src/utils/app_shared.dart <<'EOF'
 import 'dart:async';
 
@@ -986,6 +1001,8 @@ class LocaleKey {
 
   static const String homeTitle = 'home_title';
   static const String loginSessionExpires = 'loginSessionExpires';
+  static const String ok = 'ok';
+  static const String cancel = 'cancel';
   static const String widgetCancel = 'widgetCancel';
   static const String widgetConfirm = 'widgetConfirm';
 }
@@ -997,6 +1014,8 @@ import 'locale_key.dart';
 final Map<String, String> enUs = <String, String>{
   LocaleKey.homeTitle: 'Home',
   LocaleKey.loginSessionExpires: 'Login session expires!',
+  LocaleKey.ok: 'OK',
+  LocaleKey.cancel: 'Cancel',
   LocaleKey.widgetCancel: 'Cancel',
   LocaleKey.widgetConfirm: 'Confirm',
 };
@@ -1008,6 +1027,8 @@ import 'locale_key.dart';
 final Map<String, String> jaJp = <String, String>{
   LocaleKey.homeTitle: 'ホーム',
   LocaleKey.loginSessionExpires: 'ログインセッションが期限切れです！',
+  LocaleKey.ok: 'OK',
+  LocaleKey.cancel: 'キャンセル',
   LocaleKey.widgetCancel: 'キャンセル',
   LocaleKey.widgetConfirm: '決定する',
 };
