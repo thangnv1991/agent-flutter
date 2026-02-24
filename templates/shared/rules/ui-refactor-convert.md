@@ -52,6 +52,13 @@ Use this rule when at least one condition is true:
 
 ### Step 4: Localization and Content Cleanup
 - Move all user-facing text to `LocaleKey` + `.tr`.
+- Create/Update feature localization JSON files:
+  - `lib/src/locale/json/en/<feature>.json`
+  - `lib/src/locale/json/ja/<feature>.json`
+- Create/Update feature key module:
+  - `lib/src/locale/keys/<feature>_locale_key.dart`
+- Ensure `lang_en.dart` / `lang_ja.dart` only aggregate feature maps (do not inject random inline feature strings).
+- Ensure EN/JA JSON key parity for the refactored feature.
 - Do not keep demo/static strings inside production widget tree.
 - If temporary mock is needed, source it from `app_demo_data.dart`.
 
@@ -69,10 +76,14 @@ Use this rule when at least one condition is true:
 - Verify SVG rendering without unexpected tint/color shift.
 - Normalize convert-generated asset folders and names:
   - Detect non-standard convert folders (for example: `assets/figma/**`).
-  - Move/rename assets to project-standard locations (`assets/images/**`, `assets/images/icons/**`) when applicable.
+  - Move/rename assets to feature-scoped locations:
+    - `assets/images/<feature>/**`
+    - `assets/images/icons/<feature>/**`
   - Rename files to meaningful `snake_case` names based on feature and purpose.
-  - Replace convert-style asset constants in `lib/src/utils/app_assets.dart` with UI-standard naming.
+  - Replace convert-style asset constants in `lib/src/utils/app_assets.dart` with feature-scoped naming.
   - Update all usages in Dart code to new `AppAssets` constants.
+  - Prevent cross-feature collisions (same filename/constant for different meanings).
+  - Keep shared assets explicitly under shared scope only when truly reused.
   - Remove orphan/unused old asset files and constants.
 
 ### Step 7: Verify and Prepare for PR
@@ -96,15 +107,21 @@ After refactor, output must include:
 - List of renamed files/classes.
 - List of extracted components.
 - List of localized keys added/updated.
+- Localization JSON files created/updated per feature (`en/ja`) and parity status.
 - List of token replacements (`raw -> AppColors/AppStyles/AppDimensions`).
-- Asset rename mapping (`old path/name -> new path/name`) and updated `AppAssets` constants.
+- Asset rename mapping (`old path/name -> new path/name`) and updated feature-scoped `AppAssets` constants.
+- Feature asset placement report (`feature -> directories/constants`) to prove no cross-feature mixing.
 - Commit/push/PR confirmation answers and execution results.
 - Remaining known gaps (if any) with exact file paths.
 
 ## 5. Anti-Patterns (Do Not)
 - Do not keep generated class names in final code.
 - Do not leave hardcoded colors/text if a project token/key exists.
+- Do not keep feature localization inline in `lang_en.dart`/`lang_ja.dart` when feature JSON exists.
+- Do not keep unmatched keys between `json/en/<feature>.json` and `json/ja/<feature>.json`.
 - Do not keep convert-only asset naming/folders in final code if they violate project standard.
+- Do not place feature-specific assets in generic folders without feature namespace.
+- Do not reuse ambiguous asset constants across different features.
 - Do not parse API JSON directly in UI widgets.
 - Do not submit refactor that only changes formatting but leaves architectural violations.
 
@@ -115,6 +132,7 @@ Use this prompt to trigger this rule:
 > Source: `<path-to-generated-page-or-component>`.
 > Keep visual fidelity, but enforce architecture/tokens/localization/state correctness.
 > Extract reusable components and remove convert artifacts.
-> Normalize asset folder/naming and update `AppAssets` references.
+> Normalize asset folder/naming by feature and update `AppAssets` with feature-scoped constants.
+> Split localization by feature JSON (en/ja) and update LocaleKey feature module.
 > Then ask: commit now? push now? create PR now?
 > Return changed files and verification checklist results.

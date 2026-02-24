@@ -67,18 +67,25 @@ alwaysApply: false
 
 ### **C. Localization (Priority P1)**
 - **No Raw Strings**: All user-facing text MUST be localized.
-- **Implementation**:
-  - Add keys to `lib/src/locale/locale_key.dart` (snake_case: `feature_screen_element`).
-  - Update **ALL** translation files (`lib/src/locale/lang_en.dart`, `lib/src/locale/lang_ja.dart`). Optional modularization by feature:
-    - `lib/src/locale/en/<feature>.dart`
-    - `lib/src/locale/ja/<feature>.dart`
-    - Aggregators `lang_en.dart` / `lang_ja.dart` merge feature maps to reduce conflicts when multiple tasks add keys while keeping `enUs` / `jaJp`.
-  - **Usage**: Use `.tr` extension.
- - **Integration**: `lib/src/locale/translation_manager.dart` consumes `enUs` and `jaJp`. **Do not rename** these variables in aggregators.
- - **Common Keys**:
-   - Create common modules: `lib/src/core/localization/en/common.dart` and `ja/common.dart`.
-   - Use `common_*` keys for widespread phrases (Save/Cancel/OK/Back/Next/Loading/Error/Retry…).
-   - When text matches common, **reuse** the common key instead of creating a feature key.
+- **JSON Per Feature (Required)**:
+  - Each feature must have its own JSON files:
+    - `lib/src/locale/json/en/<feature>.json`
+    - `lib/src/locale/json/ja/<feature>.json`
+  - One JSON file equals one function/feature scope. Do not mix multiple features in one JSON.
+  - Keep key parity between `en` and `ja` for the same feature.
+- **LocaleKey By Feature (Required)**:
+  - Split key declarations by feature:
+    - `lib/src/locale/keys/<feature>_locale_key.dart`
+  - `lib/src/locale/locale_key.dart` should act as barrel/aggregator entry for all feature key files.
+  - Key naming format remains snake_case with feature prefix: `feature_screen_element`.
+- **Aggregator Contract (Required)**:
+  - `lang_en.dart` and `lang_ja.dart` are aggregators that merge feature maps from JSON-derived modules.
+  - Do not hardcode new feature strings directly inside `lang_en.dart`/`lang_ja.dart` except app-level bootstrap keys.
+  - `translation_manager.dart` must keep consuming `enUs` and `jaJp` variables.
+- **Usage**: Use `.tr` extension with `LocaleKey`.
+- **Common Keys**:
+  - Maintain `common` localization as separate JSON modules (`common.json`) per language.
+  - Reuse common keys (`ok`, `cancel`, `loading`, `error`, ...) instead of duplicating per feature.
     ```dart
     // ✅ Correct
     Text(LocaleKey.home_title.tr);
@@ -119,6 +126,16 @@ alwaysApply: false
 - **Rule**: Follow the [Assets Management Skill](../skills/flutter-assets-management/SKILL.md) strictly.
 - **Naming**: MUST match Figma layer names in `snake_case`.
 - **Registry**: All assets MUST be defined in `lib/src/utils/app_assets.dart`.
+- **Feature-Scoped Assets (Required)**:
+  - Group assets by feature to avoid collisions/misuse:
+    - `assets/images/<feature>/...`
+    - `assets/images/icons/<feature>/...`
+  - Do not put new feature assets into generic/global folders unless truly shared.
+  - Shared cross-feature assets must live in explicit shared folder and use shared-prefixed constants.
+- **Feature-Scoped AppAssets Constants (Required)**:
+  - Constant names must include feature prefix (for example: `homeDemoIconBellSvg`, `visitRecordImgHeaderPng`).
+  - Prefer splitting asset declarations by feature module, with `app_assets.dart` as aggregator entry.
+  - When refactoring, replace old ambiguous constants with feature-scoped names.
 - **Usage**:
   ```dart
   // ✅ Correct
@@ -129,9 +146,10 @@ alwaysApply: false
   ```
 - **Workflow**:
   1. Rename layer in Figma to `snake_case`.
-  2. Export to `assets/images/` or `assets/icons/`.
-  3. Register path in `AppAssets`.
-  4. Use `AppAssets.name` in code.
+  2. Export to feature folder (`assets/images/<feature>/` or `assets/images/icons/<feature>/`).
+  3. Register path with feature-scoped constant in `AppAssets`.
+  4. Use `AppAssets.<featureScopedName>` in code.
+  5. Remove/replace old ambiguous asset names and unused files.
  - **SVG Hygiene (Priority P1)**:
    - Flatten stroke → fill để tint/recolor an toàn.
    - Remove mask/clip/filter phức tạp; đảm bảo `viewBox` 24×24 cho icon.
@@ -188,8 +206,16 @@ Follow these steps when creating a new UI screen:
 
 ### **Step 5: Localization**
 - **Identify Strings**: List all text in the new UI (See [GetX Localization Skill](../skills/getx-localization-standard/SKILL.md)).
-- **Update Keys**: Add entries to `locale_key.dart` (e.g., `my_feature_title`).
-- **Update Translations**: Add translations to `lang_en.dart`, `lang_ja.dart`.
+- **Create Feature JSON Files**:
+  - `lib/src/locale/json/en/<feature>.json`
+  - `lib/src/locale/json/ja/<feature>.json`
+- **Update Keys**:
+  - Add/update keys in `lib/src/locale/keys/<feature>_locale_key.dart`.
+  - Ensure `locale_key.dart` exports/aggregates the feature key module.
+- **Update Aggregators**:
+  - Merge new feature translations into `lang_en.dart` and `lang_ja.dart` via feature module maps.
+  - Ensure `enUs` and `jaJp` remain valid and synchronized.
+- **Parity Check**: `en` and `ja` JSON for the same feature must have identical key sets.
 
 ### **Step 6: Main Page Implementation**
 - Create `<page_name>_page.dart` (See [UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
@@ -281,6 +307,12 @@ Follow these steps when creating a new UI screen:
 ## **4. Checklist Before PR**
 - [ ] No hardcoded colors/styles?
 - [ ] No raw strings? (Localization used)
+- [ ] **Localization JSON per feature created?** (`json/en/<feature>.json` + `json/ja/<feature>.json`)
+- [ ] **LocaleKey split by feature?** (`keys/<feature>_locale_key.dart`)
+- [ ] **EN/JA key parity passed?** (same keys between feature JSON files)
+- [ ] **lang_en/lang_ja are aggregator-only?** (no random inline feature strings)
+- [ ] **Assets grouped by feature?** (`assets/images/<feature>` and `assets/images/icons/<feature>`)
+- [ ] **AppAssets constants are feature-scoped?** (no ambiguous generic names)
 - [ ] Used `App*` widgets where possible?
 - [ ] Page broken down into `components/`?
 - [ ] Logic separated into `interactor/`?
