@@ -30,6 +30,7 @@ FLUTTER_VERSION="stable"
 PARENT_DIR="$(pwd)"
 FORCE=0
 NON_INTERACTIVE=0
+FVM_BIN=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -126,22 +127,99 @@ normalize_project_name() {
   printf '%s' "$value"
 }
 
-ensure_fvm() {
-  if [[ -d "$HOME/.pub-cache/bin" ]]; then
-    export PATH="$HOME/.pub-cache/bin:$PATH"
-  fi
-  if command -v fvm >/dev/null 2>&1; then
+append_path_once() {
+  local target="$1"
+  [[ -n "$target" ]] || return
+  [[ -d "$target" ]] || return
+  case ":$PATH:" in
+    *":$target:"*) ;;
+    *) export PATH="$PATH:$target" ;;
+  esac
+}
+
+ensure_dart() {
+  if command -v dart >/dev/null 2>&1; then
     return
   fi
+
+  if command -v flutter >/dev/null 2>&1; then
+    local flutter_cmd=""
+    local flutter_bin=""
+    local flutter_dart_bin=""
+    flutter_cmd="$(command -v flutter)"
+    flutter_bin="$(cd "$(dirname "$flutter_cmd")" && pwd)"
+    flutter_dart_bin="$flutter_bin/cache/dart-sdk/bin"
+    append_path_once "$flutter_dart_bin"
+  fi
+
+  append_path_once "/opt/homebrew/opt/dart/libexec/bin"
+  append_path_once "/usr/local/opt/dart/libexec/bin"
+
   if ! command -v dart >/dev/null 2>&1; then
-    echo "Error: fvm not found and dart not available to install fvm." >&2
+    cat >&2 <<'EOF'
+Error: dart command not found.
+Please install Dart (or Flutter) and ensure dart is available in PATH.
+Example (macOS with Homebrew):
+  brew tap dart-lang/dart
+  brew install dart
+EOF
     exit 1
   fi
+}
+
+discover_working_fvm() {
+  local candidates=()
+  local candidate=""
+  local pub_cache_fvm="$HOME/.pub-cache/bin/fvm"
+
+  if command -v fvm >/dev/null 2>&1; then
+    candidates+=("$(command -v fvm)")
+  fi
+
+  if command -v which >/dev/null 2>&1; then
+    while IFS= read -r candidate; do
+      [[ -n "$candidate" ]] || continue
+      candidates+=("$candidate")
+    done < <(which -a fvm 2>/dev/null | awk '!seen[$0]++')
+  fi
+
+  if [[ -x "$pub_cache_fvm" ]]; then
+    candidates+=("$pub_cache_fvm")
+  fi
+
+  for candidate in "${candidates[@]}"; do
+    if "$candidate" --version >/dev/null 2>&1; then
+      FVM_BIN="$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+run_fvm() {
+  "$FVM_BIN" "$@"
+}
+
+ensure_fvm() {
+  append_path_once "$HOME/.pub-cache/bin"
+
+  if discover_working_fvm; then
+    return
+  fi
+
+  ensure_dart
+
+  if discover_working_fvm; then
+    return
+  fi
+
   echo "Installing FVM..."
   dart pub global activate fvm >/dev/null
-  export PATH="$PATH:$HOME/.pub-cache/bin"
-  if ! command -v fvm >/dev/null 2>&1; then
-    echo "Error: fvm installation failed." >&2
+  append_path_once "$HOME/.pub-cache/bin"
+
+  if ! discover_working_fvm; then
+    echo "Error: FVM installation failed or fvm is not runnable." >&2
     exit 1
   fi
 }
@@ -188,9 +266,9 @@ ensure_fvm
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
-fvm use "$FLUTTER_VERSION" --force
+run_fvm use "$FLUTTER_VERSION" --force
 
-create_args=(fvm flutter create . --org "$ORG_ID" --project-name "$APP_PACKAGE_NAME")
+create_args=(run_fvm flutter create . --org "$ORG_ID" --project-name "$APP_PACKAGE_NAME")
 if [[ "$FORCE" -eq 1 ]]; then
   create_args+=(--overwrite)
 fi
@@ -209,8 +287,8 @@ cat >.vscode/settings.json <<'JSON'
 }
 JSON
 
-fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
-fvm flutter pub add --dev build_runner retrofit_generator json_serializable
+run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
+run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
 mkdir -p \
   lib/src/api \
@@ -497,8 +575,8 @@ ensure_line_in_file .gitignore ".env"
 ensure_line_in_file .gitignore ".env.staging"
 ensure_line_in_file .gitignore ".env.prod"
 
-if command -v fvm >/dev/null 2>&1; then
-  fvm dart format lib >/dev/null || true
+if [[ -n "$FVM_BIN" ]]; then
+  run_fvm dart format lib >/dev/null || true
 fi
 
 echo ""
