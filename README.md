@@ -23,6 +23,27 @@ npx agent-flutter@latest init --ide trae,codex
 npx agent-flutter@latest list --cwd /path/to/project
 ```
 
+## Publish to npm (one-time setup)
+
+1. Create npm token and save to GitHub repository secret:
+   - Secret name: `NPM_TOKEN`
+2. Push a semantic version tag:
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+GitHub Actions workflow `.github/workflows/publish.yml` will publish automatically on tags `v*.*.*`.
+
+## Release shortcuts
+
+```bash
+npm run release:patch
+npm run release:minor
+npm run release:major
+```
+
 ## Installed files
 
 - Shared pack: `.agent-flutter/`
