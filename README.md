@@ -23,10 +23,13 @@ npx agent-flutter@latest init --ide trae,codex
 npx agent-flutter@latest list --cwd /path/to/project
 ```
 
-## Publish to npm (one-time setup)
+## Publish to npm (one-time setup, Trusted Publishing)
 
-1. Create npm token and save to GitHub repository secret:
-   - Secret name: `NPM_TOKEN`
+1. On npm package settings, add a **Trusted publisher**:
+   - Provider: `GitHub Actions`
+   - Owner: `thangnv1991`
+   - Repository: `agent-flutter`
+   - Workflow file: `.github/workflows/publish.yml`
 2. Push a semantic version tag:
 
 ```bash
@@ -34,7 +37,7 @@ npm version patch
 git push origin main --follow-tags
 ```
 
-GitHub Actions workflow `.github/workflows/publish.yml` will publish automatically on tags `v*.*.*`.
+GitHub Actions workflow `.github/workflows/publish.yml` will publish automatically on tags `v*.*.*` without `NPM_TOKEN`.
 
 ## Release shortcuts
 
