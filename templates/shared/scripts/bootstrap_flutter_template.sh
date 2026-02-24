@@ -290,6 +290,7 @@ JSON
 run_fvm flutter pub add get flutter_bloc equatable dio retrofit json_annotation flutter_dotenv flutter_svg intl
 run_fvm flutter pub add flutter_keyboard_visibility:^6.0.0 cached_network_image:^3.3.1 flutter_inappwebview:^6.1.5 pin_code_fields:^8.0.1 gif:^2.3.0
 run_fvm flutter pub add carousel_slider:^5.1.1 smooth_page_indicator:^2.0.1
+run_fvm flutter pub add shared_preferences
 run_fvm flutter pub add common_widget --git-url https://github.com/tuan-urani/common_widget --git-ref main
 run_fvm flutter pub add --dev build_runner retrofit_generator json_serializable
 
@@ -305,9 +306,11 @@ mkdir -p \
   lib/src/helper \
   lib/src/locale \
   lib/src/ui/base \
+  lib/src/ui/base/interactor \
   lib/src/ui/main \
   lib/src/ui/home/binding \
   lib/src/ui/home/bloc \
+  lib/src/ui/splash \
   lib/src/ui/routing \
   lib/src/ui/widgets \
   lib/src/utils
@@ -333,7 +336,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: AppPages.main,
+      initialRoute: AppPages.splash,
       getPages: AppPages.pages,
       translations: TranslationManager(),
       locale: TranslationManager.defaultLocale,
@@ -850,20 +853,84 @@ extension DouleWithoutDecimal on double? {
 }
 EOF
 
+cat >lib/src/ui/base/interactor/page_states.dart <<'EOF'
+enum PageState { initial, loading, failure, success }
+EOF
+
+cat >lib/src/utils/app_shared.dart <<'EOF'
+import 'dart:async';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AppShared {
+  static const String keyName = 'app';
+  static const String keyBox = '${keyName}_shared';
+
+  static const String _keyFcmToken = '${keyName}_keyFCMToken';
+  static const String _keyTokenValue = '${keyName}_keyTokenValue';
+  static const String _keyLanguageCode = '${keyName}_keyLanguageCode';
+
+  final SharedPreferences _prefs;
+  final StreamController<String?> _tokenValueController =
+      StreamController<String?>.broadcast();
+
+  AppShared(this._prefs);
+
+  Future<void> setTokenFcm(String firebaseToken) async {
+    await _prefs.setString(_keyFcmToken, firebaseToken);
+  }
+
+  String? getTokenFcm() => _prefs.getString(_keyFcmToken);
+
+  Future<void> setLanguageCode(String languageCode) async {
+    await _prefs.setString(_keyLanguageCode, languageCode);
+  }
+
+  String? getLanguageCode() => _prefs.getString(_keyLanguageCode);
+
+  Future<void> setTokenValue(String tokenValue) async {
+    await _prefs.setString(_keyTokenValue, tokenValue);
+    _tokenValueController.add(tokenValue);
+  }
+
+  String? getTokenValue() => _prefs.getString(_keyTokenValue);
+
+  Stream<String?> watchTokenValue() => _tokenValueController.stream;
+
+  Future<int> clear() async {
+    await _prefs.remove(_keyFcmToken);
+    await _prefs.remove(_keyTokenValue);
+    await _prefs.remove(_keyLanguageCode);
+    _tokenValueController.add(null);
+    return 1;
+  }
+
+  void dispose() {
+    _tokenValueController.close();
+  }
+}
+EOF
+
 cat >lib/src/utils/app_pages.dart <<EOF
 import 'package:get/get.dart';
 
 import 'package:$APP_PACKAGE_NAME/src/ui/home/binding/home_binding.dart';
 import 'package:$APP_PACKAGE_NAME/src/ui/home/home_page.dart';
 import 'package:$APP_PACKAGE_NAME/src/ui/main/main_page.dart';
+import 'package:$APP_PACKAGE_NAME/src/ui/splash/splash_page.dart';
 
 class AppPages {
   AppPages._();
 
+  static const String splash = '/splash';
   static const String main = '/';
   static const String home = '/home';
 
   static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
+    GetPage(
+      name: splash,
+      page: () => const SplashPage(),
+    ),
     GetPage(
       name: main,
       page: () => const MainPage(),
@@ -878,11 +945,47 @@ class AppPages {
 }
 EOF
 
+cat >lib/src/ui/splash/splash_page.dart <<EOF
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import 'package:$APP_PACKAGE_NAME/src/utils/app_pages.dart';
+
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      Get.offNamed(AppPages.main);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+EOF
+
 cat >lib/src/locale/locale_key.dart <<'EOF'
 class LocaleKey {
   LocaleKey._();
 
   static const String homeTitle = 'home_title';
+  static const String loginSessionExpires = 'loginSessionExpires';
   static const String widgetCancel = 'widgetCancel';
   static const String widgetConfirm = 'widgetConfirm';
 }
@@ -893,6 +996,7 @@ import 'locale_key.dart';
 
 final Map<String, String> enUs = <String, String>{
   LocaleKey.homeTitle: 'Home',
+  LocaleKey.loginSessionExpires: 'Login session expires!',
   LocaleKey.widgetCancel: 'Cancel',
   LocaleKey.widgetConfirm: 'Confirm',
 };
@@ -903,6 +1007,7 @@ import 'locale_key.dart';
 
 final Map<String, String> jaJp = <String, String>{
   LocaleKey.homeTitle: 'ホーム',
+  LocaleKey.loginSessionExpires: 'ログインセッションが期限切れです！',
   LocaleKey.widgetCancel: 'キャンセル',
   LocaleKey.widgetConfirm: '決定する',
 };
