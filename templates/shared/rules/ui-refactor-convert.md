@@ -35,6 +35,10 @@ Use this rule when at least one condition is true:
   - `lib/src/ui/<feature>/{binding,interactor,components}`
 - Rename generated class/file names to semantic names.
 - Keep page entry simple (`<feature>_page.dart` should not contain huge raw trees).
+- Enforce decomposition contract:
+  - `<feature>_page.dart` is composition-only.
+  - Major sections go to `components/*.dart` (header/form/list/footer/dialog section...).
+  - Do not keep convert output as a single giant widget tree in one file.
 
 ### Step 2: Apply Design Tokens and Shared Widgets
 - Replace raw style values with:
@@ -47,6 +51,7 @@ Use this rule when at least one condition is true:
 ### Step 3: Remove Convert Artifacts
 - Remove redundant wrappers (`ClipRRect + Container` duplicates, empty containers, unnecessary stacks).
 - Reduce deeply nested UI into clear sub-components under `components/`.
+- If `build()` is large or screen has multiple sections/states, split immediately; do not wait for reuse.
 - Add `const` where possible.
 - Avoid `Get.width` direct usage when local layout constraints are more correct (`LayoutBuilder`, `MediaQuery` scoped use).
 
@@ -113,6 +118,9 @@ Use this rule when at least one condition is true:
 After refactor, output must include:
 - List of renamed files/classes.
 - List of extracted components.
+- Proof that page is not monolithic:
+  - `<feature>_page.dart` responsibility summary.
+  - section-to-component mapping (`section -> file`).
 - List of localized keys added/updated.
 - Localization JSON files created/updated per feature (`en/ja`) and parity status.
 - List of token replacements (`raw -> AppColors/AppStyles/AppDimensions`).
@@ -124,6 +132,7 @@ After refactor, output must include:
 
 ## 5. Anti-Patterns (Do Not)
 - Do not keep generated class names in final code.
+- Do not keep all converted UI in one page file for multi-section screens.
 - Do not leave hardcoded colors/text if a project token/key exists.
 - Do not keep feature localization inline in `lang_en.dart`/`lang_ja.dart` when feature JSON exists.
 - Do not keep unmatched keys between `json/en/<feature>.json` and `json/ja/<feature>.json`.

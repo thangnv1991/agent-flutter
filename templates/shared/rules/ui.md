@@ -67,25 +67,26 @@ alwaysApply: false
 
 ### **C. Localization (Priority P1)**
 - **No Raw Strings**: All user-facing text MUST be localized.
-- **JSON Per Feature (Required)**:
-  - Each feature must have its own JSON files:
-    - `lib/src/locale/json/en/<feature>.json`
-    - `lib/src/locale/json/ja/<feature>.json`
-  - One JSON file equals one function/feature scope. Do not mix multiple features in one JSON.
-  - Keep key parity between `en` and `ja` for the same feature.
-- **LocaleKey By Feature (Required)**:
-  - Split key declarations by feature:
-    - `lib/src/locale/keys/<feature>_locale_key.dart`
-  - `lib/src/locale/locale_key.dart` should act as barrel/aggregator entry for all feature key files.
-  - Key naming format remains snake_case with feature prefix: `feature_screen_element`.
+- **JSON Per Function Module (Required)**:
+  - One function module must map to one JSON file per language:
+    - `lib/src/locale/json/en/<function>.json`
+    - `lib/src/locale/json/ja/<function>.json`
+  - Do not mix multiple function scopes in one JSON file.
+  - Keep key parity between `en` and `ja` for the same function module.
+  - Use `common.json` only for truly shared texts (`ok`, `cancel`, `loading`, ...).
+- **LocaleKey By Function Module (Required)**:
+  - Split key declarations by function module:
+    - `lib/src/locale/keys/<function>_locale_key.dart`
+  - `lib/src/locale/locale_key.dart` is barrel-only: export function key files, do not add business keys directly.
+  - Key naming format remains snake_case with function prefix: `function_screen_element`.
 - **Aggregator Contract (Required)**:
-  - `lang_en.dart` and `lang_ja.dart` are aggregators that merge feature maps from JSON-derived modules.
-  - Do not hardcode new feature strings directly inside `lang_en.dart`/`lang_ja.dart` except app-level bootstrap keys.
+  - `lang_en.dart` and `lang_ja.dart` are aggregator-only files that merge function-module maps.
+  - Do not hardcode new function strings directly inside `lang_en.dart`/`lang_ja.dart` except app bootstrap keys.
   - `translation_manager.dart` must keep consuming `enUs` and `jaJp` variables.
 - **Usage**: Use `.tr` extension with `LocaleKey`.
 - **Common Keys**:
   - Maintain `common` localization as separate JSON modules (`common.json`) per language.
-  - Reuse common keys (`ok`, `cancel`, `loading`, `error`, ...) instead of duplicating per feature.
+  - Reuse common keys (`ok`, `cancel`, `loading`, `error`, ...) instead of duplicating per function.
     ```dart
     // ✅ Correct
     Text(LocaleKey.home_title.tr);
@@ -184,6 +185,16 @@ lib/src/ui/<page_name>/
 └── <page_name>_page.dart         # Main Entry Point
 ```
 
+### **Component Decomposition Contract (STRICT)**
+- `<page_name>_page.dart` must be composition-focused only (routing, scaffold, bloc/state wiring, section assembly).
+- Major UI sections must be split into files under `components/` (header, filter/form, list/content, footer/actions...).
+- Do not keep a monolithic page tree in a single file when screen has multiple sections/states.
+- Extraction is mandatory when one of these is true:
+  - `build()` body is over 120 lines.
+  - Screen has 3+ visual sections.
+  - A section has its own interaction/state/validation.
+- Prefer `components/*.dart` over many private `_buildX()` methods in page file.
+
 ---
 
 ## **3. New Page Creation Workflow**
@@ -217,16 +228,16 @@ Follow these steps when creating a new UI screen:
 
 ### **Step 5: Localization**
 - **Identify Strings**: List all text in the new UI (See [GetX Localization Skill](../skills/getx-localization-standard/SKILL.md)).
-- **Create Feature JSON Files**:
-  - `lib/src/locale/json/en/<feature>.json`
-  - `lib/src/locale/json/ja/<feature>.json`
+- **Create Function JSON Files**:
+  - `lib/src/locale/json/en/<function>.json`
+  - `lib/src/locale/json/ja/<function>.json`
 - **Update Keys**:
-  - Add/update keys in `lib/src/locale/keys/<feature>_locale_key.dart`.
-  - Ensure `locale_key.dart` exports/aggregates the feature key module.
+  - Add/update keys in `lib/src/locale/keys/<function>_locale_key.dart`.
+  - Ensure `locale_key.dart` only exports/aggregates function key modules.
 - **Update Aggregators**:
-  - Merge new feature translations into `lang_en.dart` and `lang_ja.dart` via feature module maps.
+  - Merge new function translations into `lang_en.dart` and `lang_ja.dart` via function module maps.
   - Ensure `enUs` and `jaJp` remain valid and synchronized.
-- **Parity Check**: `en` and `ja` JSON for the same feature must have identical key sets.
+- **Parity Check**: `en` and `ja` JSON for the same function module must have identical key sets.
 
 ### **Step 6: Main Page Implementation**
 - Create `<page_name>_page.dart` (See [UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
@@ -255,8 +266,9 @@ Follow these steps when creating a new UI screen:
      ```
 
 ### **Step 7: Component Extraction**
-- **Rule**: If a widget block is > 50 lines or reused twice, extract it to `components/` (See [Flutter UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
-- Keep the main `build()` method clean and readable.
+- **Rule**: Component extraction is mandatory for multi-section screens; do not deliver all UI in one file (See [Flutter UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
+- Extract to `components/` when any block is > 50 lines, reused twice, or has its own interaction/state.
+- Keep the main page file composition-only; avoid deep nested trees and many `_buildX()` helpers in page file.
 
 ### **Step 8: Route Registration (Choose One)**
 - See [Navigation Manager Skill](../skills/flutter-navigation-manager/SKILL.md).
@@ -318,16 +330,18 @@ Follow these steps when creating a new UI screen:
 ## **4. Checklist Before PR**
 - [ ] No hardcoded colors/styles?
 - [ ] No raw strings? (Localization used)
-- [ ] **Localization JSON per feature created?** (`json/en/<feature>.json` + `json/ja/<feature>.json`)
-- [ ] **LocaleKey split by feature?** (`keys/<feature>_locale_key.dart`)
-- [ ] **EN/JA key parity passed?** (same keys between feature JSON files)
-- [ ] **lang_en/lang_ja are aggregator-only?** (no random inline feature strings)
+- [ ] **Localization JSON per function created?** (`json/en/<function>.json` + `json/ja/<function>.json`)
+- [ ] **LocaleKey split by function?** (`keys/<function>_locale_key.dart`)
+- [ ] **EN/JA key parity passed?** (same keys between function JSON files)
+- [ ] **lang_en/lang_ja are aggregator-only?** (no random inline function strings)
 - [ ] **Assets grouped by feature?** (`assets/images/<feature>` and `assets/images/icons/<feature>`)
 - [ ] **AppAssets constants are feature-scoped?** (no ambiguous generic names)
 - [ ] **If MCP used: assets downloaded via script?** (`tool/download_figma_mcp_assets.mjs`)
 - [ ] **If MCP used: mapping report reviewed?** (`spec/figma-assets/<feature>-asset-map.json`)
 - [ ] Used `App*` widgets where possible?
 - [ ] Page broken down into `components/`?
+- [ ] Main page is composition-only (no monolithic widget tree in one file)?
+- [ ] Each major section/state extracted into dedicated component files?
 - [ ] Logic separated into `interactor/`?
 - [ ] **Data Models Separated?** (Request/Response in `core/model/`)
 - [ ] **Model Correctness Gate passed?** (required/nullable/enum/date/number mapping validated)
