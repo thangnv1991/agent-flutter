@@ -78,6 +78,8 @@ Use this rule when at least one condition is true:
   - `spec/figma-assets/<feature>-mcp-assets.json`
   - then run:
     - `node tool/download_figma_mcp_assets.mjs --assets spec/figma-assets/<feature>-mcp-assets.json --feature <feature>`
+    - script auto-normalizes SVG for Flutter/mobile compatibility by default.
+    - use `--no-normalize-svg` only for debugging raw source.
 - Normalize convert-generated asset folders and names:
   - Detect non-standard convert folders (for example: `assets/figma/**`).
   - Move/rename assets to feature-scoped locations:

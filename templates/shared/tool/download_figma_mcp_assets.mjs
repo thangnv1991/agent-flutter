@@ -18,6 +18,7 @@ Options:
   --icons-dir   Target icon directory. Default: assets/images/icons/<feature>
   --images-dir  Target image directory. Default: assets/images/<feature>
   --report      Output mapping report path. Default: spec/figma-assets/<feature>-asset-map.json
+  --no-normalize-svg  Skip Flutter/mobile SVG normalization step.
   --overwrite   Overwrite existing files.
   --dry-run     Fetch and print mapping without writing files.
   --help        Show this message.
@@ -34,7 +35,12 @@ function parseArgs(argv) {
     }
 
     const key = token.slice(2);
-    if (key === 'overwrite' || key === 'dry-run' || key === 'help') {
+    if (
+      key === 'overwrite'
+      || key === 'dry-run'
+      || key === 'help'
+      || key === 'no-normalize-svg'
+    ) {
       flags.add(key);
       continue;
     }
@@ -85,6 +91,113 @@ function toPascalCase(value) {
 
 function toPosix(value) {
   return String(value).replaceAll('\\', '/');
+}
+
+function parseSvgStyle(styleString) {
+  const allowed = new Set([
+    'fill',
+    'stroke',
+    'stroke-width',
+    'stroke-linecap',
+    'stroke-linejoin',
+    'stroke-miterlimit',
+    'stroke-dasharray',
+    'stroke-dashoffset',
+    'fill-rule',
+    'clip-rule',
+    'opacity',
+    'fill-opacity',
+    'stroke-opacity',
+  ]);
+  const output = [];
+  for (const chunk of String(styleString || '').split(';')) {
+    const line = chunk.trim();
+    if (!line) continue;
+    const index = line.indexOf(':');
+    if (index <= 0) continue;
+    const key = line.slice(0, index).trim().toLowerCase();
+    const value = line.slice(index + 1).trim();
+    if (!value || !allowed.has(key)) continue;
+    output.push(`${key}="${value}"`);
+  }
+  return output.join(' ');
+}
+
+function extractNumericSvgAttr(svgAttrs, attrName) {
+  const regex = new RegExp(`\\s${attrName}\\s*=\\s*["']([^"']+)["']`, 'i');
+  const match = svgAttrs.match(regex);
+  if (!match) return null;
+  const value = String(match[1]).trim().replace(/px$/i, '');
+  const number = Number.parseFloat(value);
+  if (!Number.isFinite(number) || number <= 0) return null;
+  return number;
+}
+
+function formatSvgNumber(value) {
+  if (Number.isInteger(value)) return String(value);
+  const rounded = Number(value.toFixed(3));
+  return String(rounded).replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
+}
+
+function normalizeSvgRoot(svgContent) {
+  return svgContent.replace(/<svg\b([^>]*)>/i, (full, attrs) => {
+    let nextAttrs = attrs;
+    if (!/\sxmlns\s*=/.test(nextAttrs)) {
+      nextAttrs += ' xmlns="http://www.w3.org/2000/svg"';
+    }
+
+    nextAttrs = nextAttrs.replace(
+      /\s(width|height)\s*=\s*["']([^"']*?)px["']/gi,
+      (_, key, value) => ` ${String(key).toLowerCase()}="${value}"`,
+    );
+
+    if (!/\sviewBox\s*=/.test(nextAttrs)) {
+      const width = extractNumericSvgAttr(nextAttrs, 'width');
+      const height = extractNumericSvgAttr(nextAttrs, 'height');
+      if (width && height) {
+        nextAttrs += ` viewBox="0 0 ${formatSvgNumber(width)} ${formatSvgNumber(height)}"`;
+      }
+    }
+
+    return `<svg${nextAttrs}>`;
+  });
+}
+
+function normalizeSvgForFlutter(svgInput) {
+  let svg = String(svgInput || '');
+  svg = svg.replace(/^\uFEFF/, '');
+  svg = svg.replace(/<\?xml[\s\S]*?\?>/gi, '');
+  svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
+  svg = svg.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Remove unsupported/non-rendering tags for flutter_svg mobile rendering.
+  svg = svg.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+  svg = svg.replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, '');
+  svg = svg.replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  svg = svg.replace(/<metadata\b[\s\S]*?<\/metadata>/gi, '');
+  svg = svg.replace(/<desc\b[\s\S]*?<\/desc>/gi, '');
+  svg = svg.replace(/<filter\b[\s\S]*?<\/filter>/gi, '');
+
+  // Remove attributes commonly tied to unsupported effects or web-only data.
+  svg = svg.replace(/\sfilter\s*=\s*["']url\([^"']*?\)["']/gi, '');
+  svg = svg.replace(/\sclass\s*=\s*["'][^"']*["']/gi, '');
+  svg = svg.replace(/\sid\s*=\s*["'][^"']*["']/gi, '');
+  svg = svg.replace(/\sdata-[\w-]+\s*=\s*["'][^"']*["']/gi, '');
+
+  // Expand inline style attr into explicit SVG attrs where possible.
+  svg = svg.replace(/\sstyle\s*=\s*"([^"]*)"/gi, (_, styleValue) => {
+    const attrs = parseSvgStyle(styleValue);
+    return attrs ? ` ${attrs}` : '';
+  });
+  svg = svg.replace(/\sstyle\s*=\s*'([^']*)'/gi, (_, styleValue) => {
+    const attrs = parseSvgStyle(styleValue);
+    return attrs ? ` ${attrs}` : '';
+  });
+
+  svg = normalizeSvgRoot(svg);
+  svg = svg.replace(/>\s+</g, '><').trim();
+  if (!svg.endsWith('\n')) svg += '\n';
+  return svg;
 }
 
 function resolveEntries(raw) {
@@ -234,6 +347,7 @@ async function main() {
   const reportPath = args.get('report', path.join('spec', 'figma-assets', `${feature}-asset-map.json`));
   const overwrite = args.has('overwrite');
   const dryRun = args.has('dry-run');
+  const normalizeSvg = !args.has('no-normalize-svg');
 
   const rawContent = await fs.readFile(assetsPath, 'utf8');
   const parsed = JSON.parse(rawContent);
@@ -270,9 +384,15 @@ async function main() {
         isIcon,
       });
 
+      let finalBuffer = buffer;
+      if (ext === '.svg' && normalizeSvg) {
+        const normalized = normalizeSvgForFlutter(buffer.toString('utf8'));
+        finalBuffer = Buffer.from(normalized, 'utf8');
+      }
+
       if (!dryRun) {
         await fs.mkdir(path.dirname(absoluteTarget), { recursive: true });
-        await fs.writeFile(absoluteTarget, buffer);
+        await fs.writeFile(absoluteTarget, finalBuffer);
       }
 
       reportItems.push({
@@ -281,6 +401,7 @@ async function main() {
         type: isIcon ? 'icon' : 'image',
         output: relativeTarget,
         constantName,
+        normalizedSvg: ext === '.svg' ? normalizeSvg : false,
         contentType: contentType || '',
       });
       successCount += 1;

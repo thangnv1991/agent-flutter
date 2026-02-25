@@ -155,6 +155,8 @@ alwaysApply: false
      - `spec/figma-assets/<feature>-mcp-assets.json`
   2. Run download script:
      - `node tool/download_figma_mcp_assets.mjs --assets spec/figma-assets/<feature>-mcp-assets.json --feature <feature>`
+     - Default behavior: downloaded `.svg` is auto-normalized for Flutter/mobile compatibility.
+     - Use `--no-normalize-svg` only when you need raw original SVG for debugging.
   3. Use generated mapping report:
      - `spec/figma-assets/<feature>-asset-map.json`
   4. Update `AppAssets` constants and replace usages with feature-scoped names.
