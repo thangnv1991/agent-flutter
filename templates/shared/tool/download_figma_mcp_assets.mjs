@@ -93,23 +93,24 @@ function toPosix(value) {
   return String(value).replaceAll('\\', '/');
 }
 
-function parseSvgStyle(styleString) {
-  const allowed = new Set([
-    'fill',
-    'stroke',
-    'stroke-width',
-    'stroke-linecap',
-    'stroke-linejoin',
-    'stroke-miterlimit',
-    'stroke-dasharray',
-    'stroke-dashoffset',
-    'fill-rule',
-    'clip-rule',
-    'opacity',
-    'fill-opacity',
-    'stroke-opacity',
-  ]);
-  const output = [];
+const ALLOWED_SVG_STYLE_KEYS = new Set([
+  'fill',
+  'stroke',
+  'stroke-width',
+  'stroke-linecap',
+  'stroke-linejoin',
+  'stroke-miterlimit',
+  'stroke-dasharray',
+  'stroke-dashoffset',
+  'fill-rule',
+  'clip-rule',
+  'opacity',
+  'fill-opacity',
+  'stroke-opacity',
+]);
+
+function parseSvgStyleMap(styleString) {
+  const output = new Map();
   for (const chunk of String(styleString || '').split(';')) {
     const line = chunk.trim();
     if (!line) continue;
@@ -117,10 +118,98 @@ function parseSvgStyle(styleString) {
     if (index <= 0) continue;
     const key = line.slice(0, index).trim().toLowerCase();
     const value = line.slice(index + 1).trim();
-    if (!value || !allowed.has(key)) continue;
+    if (!value || !ALLOWED_SVG_STYLE_KEYS.has(key)) continue;
+    if (/^var\(/i.test(value)) continue;
+    output.set(key, value);
+  }
+  return output;
+}
+
+function parseSvgStyle(styleString) {
+  const parsed = parseSvgStyleMap(styleString);
+  if (!parsed.size) return '';
+  const output = [];
+  for (const [key, value] of parsed.entries()) {
     output.push(`${key}="${value}"`);
   }
   return output.join(' ');
+}
+
+function extractSvgClassStyles(svgContent) {
+  const classStyles = new Map();
+  const styleBlockRegex = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
+  let styleBlock;
+  while ((styleBlock = styleBlockRegex.exec(svgContent)) !== null) {
+    const css = styleBlock[1] || '';
+    const classRuleRegex = /\.([a-zA-Z_][\w-]*)\s*\{([^}]*)\}/g;
+    let classRule;
+    while ((classRule = classRuleRegex.exec(css)) !== null) {
+      const className = classRule[1];
+      const parsed = parseSvgStyleMap(classRule[2]);
+      if (!parsed.size) continue;
+      const existing = classStyles.get(className) || new Map();
+      for (const [key, value] of parsed.entries()) {
+        existing.set(key, value);
+      }
+      classStyles.set(className, existing);
+    }
+  }
+  return classStyles;
+}
+
+function applySvgClassStyles(svgContent, classStyles) {
+  if (!classStyles.size) return svgContent;
+
+  return svgContent.replace(/<([a-zA-Z][\w:.-]*)([^<>]*)>/g, (full, tagName, attrs) => {
+    const tag = String(tagName || '').toLowerCase();
+    if (tag === 'style' || tag === 'script' || tag === 'metadata' || tag === 'desc') {
+      return full;
+    }
+
+    let nextAttrs = String(attrs || '');
+    const classMatch = nextAttrs.match(/\sclass\s*=\s*["']([^"']+)["']/i);
+    const inlineStyleDouble = nextAttrs.match(/\sstyle\s*=\s*"([^"]*)"/i);
+    const inlineStyleSingle = nextAttrs.match(/\sstyle\s*=\s*'([^']*)'/i);
+    const inlineStyleValue = inlineStyleDouble?.[1] ?? inlineStyleSingle?.[1] ?? '';
+
+    nextAttrs = nextAttrs
+      .replace(/\sclass\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/\sstyle\s*=\s*"[^"]*"/gi, '')
+      .replace(/\sstyle\s*=\s*'[^']*'/gi, '');
+
+    const mergedStyles = new Map();
+    if (classMatch) {
+      for (const className of classMatch[1].split(/\s+/).map((item) => item.trim()).filter(Boolean)) {
+        const classStyle = classStyles.get(className);
+        if (!classStyle) continue;
+        for (const [key, value] of classStyle.entries()) {
+          mergedStyles.set(key, value);
+        }
+      }
+    }
+
+    const inlineParsed = parseSvgStyleMap(inlineStyleValue);
+    for (const [key, value] of inlineParsed.entries()) {
+      mergedStyles.set(key, value);
+    }
+
+    if (!mergedStyles.size) {
+      return `<${tagName}${nextAttrs}>`;
+    }
+
+    const existingAttrNames = new Set();
+    nextAttrs.replace(/\s([:@a-zA-Z_][\w:.-]*)\s*=/g, (_, name) => {
+      existingAttrNames.add(String(name).toLowerCase());
+      return _;
+    });
+
+    for (const [key, value] of mergedStyles.entries()) {
+      if (existingAttrNames.has(key.toLowerCase())) continue;
+      nextAttrs += ` ${key}="${value}"`;
+    }
+
+    return `<${tagName}${nextAttrs}>`;
+  });
 }
 
 function extractNumericSvgAttr(svgAttrs, attrName) {
@@ -170,6 +259,9 @@ function normalizeSvgForFlutter(svgInput) {
   svg = svg.replace(/<!DOCTYPE[\s\S]*?>/gi, '');
   svg = svg.replace(/<!--[\s\S]*?-->/g, '');
 
+  const classStyles = extractSvgClassStyles(svg);
+  svg = applySvgClassStyles(svg, classStyles);
+
   // Remove unsupported/non-rendering tags for flutter_svg mobile rendering.
   svg = svg.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   svg = svg.replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, '');
@@ -181,8 +273,9 @@ function normalizeSvgForFlutter(svgInput) {
   // Remove attributes commonly tied to unsupported effects or web-only data.
   svg = svg.replace(/\sfilter\s*=\s*["']url\([^"']*?\)["']/gi, '');
   svg = svg.replace(/\sclass\s*=\s*["'][^"']*["']/gi, '');
-  svg = svg.replace(/\sid\s*=\s*["'][^"']*["']/gi, '');
   svg = svg.replace(/\sdata-[\w-]+\s*=\s*["'][^"']*["']/gi, '');
+  svg = svg.replace(/\sxlink:href\s*=\s*["']([^"']+)["']/gi, ' href="$1"');
+  svg = svg.replace(/\sxmlns:xlink\s*=\s*["'][^"']*["']/gi, '');
 
   // Expand inline style attr into explicit SVG attrs where possible.
   svg = svg.replace(/\sstyle\s*=\s*"([^"]*)"/gi, (_, styleValue) => {

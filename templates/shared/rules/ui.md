@@ -71,6 +71,7 @@ alwaysApply: false
   - One function module must map to one JSON file per language:
     - `lib/src/locale/json/en/<function>.json`
     - `lib/src/locale/json/ja/<function>.json`
+  - Folder-only setup is invalid. Files must exist and contain real key/value entries.
   - Do not mix multiple function scopes in one JSON file.
   - Keep key parity between `en` and `ja` for the same function module.
   - Use `common.json` only for truly shared texts (`ok`, `cancel`, `loading`, ...).
@@ -80,6 +81,9 @@ alwaysApply: false
   - `lib/src/locale/locale_key.dart` is barrel-only: export function key files, do not add business keys directly.
   - Key naming format remains snake_case with function prefix: `function_screen_element`.
 - **Aggregator Contract (Required)**:
+  - Create language module maps per function:
+    - `lib/src/locale/en/<function>.dart`
+    - `lib/src/locale/ja/<function>.dart`
   - `lang_en.dart` and `lang_ja.dart` are aggregator-only files that merge function-module maps.
   - Do not hardcode new function strings directly inside `lang_en.dart`/`lang_ja.dart` except app bootstrap keys.
   - `translation_manager.dart` must keep consuming `enUs` and `jaJp` variables.
@@ -231,13 +235,24 @@ Follow these steps when creating a new UI screen:
 - **Create Function JSON Files**:
   - `lib/src/locale/json/en/<function>.json`
   - `lib/src/locale/json/ja/<function>.json`
+  - JSON files must not be empty.
 - **Update Keys**:
   - Add/update keys in `lib/src/locale/keys/<function>_locale_key.dart`.
   - Ensure `locale_key.dart` only exports/aggregates function key modules.
 - **Update Aggregators**:
+  - Add language module files:
+    - `lib/src/locale/en/<function>.dart`
+    - `lib/src/locale/ja/<function>.dart`
   - Merge new function translations into `lang_en.dart` and `lang_ja.dart` via function module maps.
   - Ensure `enUs` and `jaJp` remain valid and synchronized.
 - **Parity Check**: `en` and `ja` JSON for the same function module must have identical key sets.
+- **Minimum File Set Gate (STRICT)**:
+  - A localization task is incomplete if missing any file in this set:
+    - `json/en/<function>.json`
+    - `json/ja/<function>.json`
+    - `keys/<function>_locale_key.dart`
+    - `en/<function>.dart`
+    - `ja/<function>.dart`
 
 ### **Step 6: Main Page Implementation**
 - Create `<page_name>_page.dart` (See [UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
@@ -331,7 +346,9 @@ Follow these steps when creating a new UI screen:
 - [ ] No hardcoded colors/styles?
 - [ ] No raw strings? (Localization used)
 - [ ] **Localization JSON per function created?** (`json/en/<function>.json` + `json/ja/<function>.json`)
+- [ ] **Localization files are non-empty?** (not folder-only / not empty JSON)
 - [ ] **LocaleKey split by function?** (`keys/<function>_locale_key.dart`)
+- [ ] **Locale language modules created?** (`en/<function>.dart` + `ja/<function>.dart`)
 - [ ] **EN/JA key parity passed?** (same keys between function JSON files)
 - [ ] **lang_en/lang_ja are aggregator-only?** (no random inline function strings)
 - [ ] **Assets grouped by feature?** (`assets/images/<feature>` and `assets/images/icons/<feature>`)

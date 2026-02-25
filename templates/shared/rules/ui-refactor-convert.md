@@ -60,10 +60,15 @@ Use this rule when at least one condition is true:
 - Create/Update feature localization JSON files:
   - `lib/src/locale/json/en/<feature>.json`
   - `lib/src/locale/json/ja/<feature>.json`
+  - Do not leave folder-only structure; files must exist with real translations.
 - Create/Update feature key module:
   - `lib/src/locale/keys/<feature>_locale_key.dart`
+- Create/Update language modules:
+  - `lib/src/locale/en/<feature>.dart`
+  - `lib/src/locale/ja/<feature>.dart`
 - Ensure `lang_en.dart` / `lang_ja.dart` only aggregate feature maps (do not inject random inline feature strings).
 - Ensure EN/JA JSON key parity for the refactored feature.
+- Refactor is incomplete if any localization module file above is missing.
 - Do not keep demo/static strings inside production widget tree.
 - If temporary mock is needed, source it from `app_demo_data.dart`.
 
@@ -78,13 +83,14 @@ Use this rule when at least one condition is true:
 ### Step 6: Asset and Icon Hygiene
 - Use `AppAssets` only (no raw asset path in widget code).
 - Keep icon/image naming consistent and avoid duplicates.
-- Verify SVG rendering without unexpected tint/color shift.
+- Verify SVG rendering without unexpected tint/color shift and without mobile parser errors.
 - If source is Figma MCP output, save MCP asset URL mapping to:
   - `spec/figma-assets/<feature>-mcp-assets.json`
   - then run:
     - `node tool/download_figma_mcp_assets.mjs --assets spec/figma-assets/<feature>-mcp-assets.json --feature <feature>`
     - script auto-normalizes SVG for Flutter/mobile compatibility by default.
     - use `--no-normalize-svg` only for debugging raw source.
+  - If SVG still fails on mobile, re-run normalize flow and verify there are no web-only tags (`foreignObject`, `script`) in output.
 - Normalize convert-generated asset folders and names:
   - Detect non-standard convert folders (for example: `assets/figma/**`).
   - Move/rename assets to feature-scoped locations:
@@ -123,6 +129,7 @@ After refactor, output must include:
   - section-to-component mapping (`section -> file`).
 - List of localized keys added/updated.
 - Localization JSON files created/updated per feature (`en/ja`) and parity status.
+- Localization module files created/updated per feature (`en/<feature>.dart`, `ja/<feature>.dart`) and non-empty check.
 - List of token replacements (`raw -> AppColors/AppStyles/AppDimensions`).
 - Asset rename mapping (`old path/name -> new path/name`) and updated feature-scoped `AppAssets` constants.
 - Feature asset placement report (`feature -> directories/constants`) to prove no cross-feature mixing.
@@ -135,6 +142,7 @@ After refactor, output must include:
 - Do not keep all converted UI in one page file for multi-section screens.
 - Do not leave hardcoded colors/text if a project token/key exists.
 - Do not keep feature localization inline in `lang_en.dart`/`lang_ja.dart` when feature JSON exists.
+- Do not leave locale folders without actual feature files/content.
 - Do not keep unmatched keys between `json/en/<feature>.json` and `json/ja/<feature>.json`.
 - Do not keep convert-only asset naming/folders in final code if they violate project standard.
 - Do not place feature-specific assets in generic folders without feature namespace.
