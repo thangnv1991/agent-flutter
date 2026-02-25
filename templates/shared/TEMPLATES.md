@@ -87,6 +87,7 @@ Refactor converted UI:
 - Feature name: [e.g. home_demo]
 - Keep exact Figma visual: [yes/no]
 - Needs API integration now?: [yes/no]
+- MCP assets json path: [e.g. spec/figma-assets/home_demo-mcp-assets.json]
 - Normalize/rename convert assets?: [yes/no]
 - Commit now?: [yes/no]
 - Push now?: [yes/no]
@@ -97,7 +98,8 @@ Refactor converted UI:
 Expected behavior:
 1. Apply `ui-refactor-convert.md` + `ui.md`.
 2. Rename generated classes/files to semantic names.
-3. Normalize convert-generated asset folder and names, then update `AppAssets` usages.
-4. Replace hardcoded style/string with tokens + localization.
-5. Extract components and pass UI correctness gates.
-6. Ask and execute in order: commit -> push -> create PR.
+3. If MCP is used, download assets via `node tool/download_figma_mcp_assets.mjs ...` first.
+4. Normalize convert-generated asset folder and names, then update `AppAssets` usages.
+5. Replace hardcoded style/string with tokens + localization.
+6. Extract components and pass UI correctness gates.
+7. Ask and execute in order: commit -> push -> create PR.

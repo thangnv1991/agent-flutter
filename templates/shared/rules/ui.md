@@ -150,6 +150,15 @@ alwaysApply: false
   3. Register path with feature-scoped constant in `AppAssets`.
   4. Use `AppAssets.<featureScopedName>` in code.
   5. Remove/replace old ambiguous asset names and unused files.
+- **Figma MCP Asset Download (Required when using MCP)**:
+  1. Save asset URL mapping from MCP output into:
+     - `spec/figma-assets/<feature>-mcp-assets.json`
+  2. Run download script:
+     - `node tool/download_figma_mcp_assets.mjs --assets spec/figma-assets/<feature>-mcp-assets.json --feature <feature>`
+  3. Use generated mapping report:
+     - `spec/figma-assets/<feature>-asset-map.json`
+  4. Update `AppAssets` constants and replace usages with feature-scoped names.
+  5. Remove old temporary/convert asset paths after migration.
  - **SVG Hygiene (Priority P1)**:
    - Flatten stroke → fill để tint/recolor an toàn.
    - Remove mask/clip/filter phức tạp; đảm bảo `viewBox` 24×24 cho icon.
@@ -313,6 +322,8 @@ Follow these steps when creating a new UI screen:
 - [ ] **lang_en/lang_ja are aggregator-only?** (no random inline feature strings)
 - [ ] **Assets grouped by feature?** (`assets/images/<feature>` and `assets/images/icons/<feature>`)
 - [ ] **AppAssets constants are feature-scoped?** (no ambiguous generic names)
+- [ ] **If MCP used: assets downloaded via script?** (`tool/download_figma_mcp_assets.mjs`)
+- [ ] **If MCP used: mapping report reviewed?** (`spec/figma-assets/<feature>-asset-map.json`)
 - [ ] Used `App*` widgets where possible?
 - [ ] Page broken down into `components/`?
 - [ ] Logic separated into `interactor/`?

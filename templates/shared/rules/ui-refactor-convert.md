@@ -74,6 +74,10 @@ Use this rule when at least one condition is true:
 - Use `AppAssets` only (no raw asset path in widget code).
 - Keep icon/image naming consistent and avoid duplicates.
 - Verify SVG rendering without unexpected tint/color shift.
+- If source is Figma MCP output, save MCP asset URL mapping to:
+  - `spec/figma-assets/<feature>-mcp-assets.json`
+  - then run:
+    - `node tool/download_figma_mcp_assets.mjs --assets spec/figma-assets/<feature>-mcp-assets.json --feature <feature>`
 - Normalize convert-generated asset folders and names:
   - Detect non-standard convert folders (for example: `assets/figma/**`).
   - Move/rename assets to feature-scoped locations:
@@ -85,6 +89,7 @@ Use this rule when at least one condition is true:
   - Prevent cross-feature collisions (same filename/constant for different meanings).
   - Keep shared assets explicitly under shared scope only when truly reused.
   - Remove orphan/unused old asset files and constants.
+  - Review report output in `spec/figma-assets/<feature>-asset-map.json` before final replace.
 
 ### Step 7: Verify and Prepare for PR
 - Run at minimum:
@@ -111,6 +116,7 @@ After refactor, output must include:
 - List of token replacements (`raw -> AppColors/AppStyles/AppDimensions`).
 - Asset rename mapping (`old path/name -> new path/name`) and updated feature-scoped `AppAssets` constants.
 - Feature asset placement report (`feature -> directories/constants`) to prove no cross-feature mixing.
+- MCP asset download report path and summary (if MCP flow was used).
 - Commit/push/PR confirmation answers and execution results.
 - Remaining known gaps (if any) with exact file paths.
 
