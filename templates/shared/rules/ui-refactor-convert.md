@@ -57,17 +57,15 @@ Use this rule when at least one condition is true:
 
 ### Step 4: Localization and Content Cleanup
 - Move all user-facing text to `LocaleKey` + `.tr`.
-- Create/Update feature localization JSON files:
-  - `lib/src/locale/json/en/<feature>.json`
-  - `lib/src/locale/json/ja/<feature>.json`
-  - Do not leave folder-only structure; files must exist with real translations.
 - Create/Update feature key module:
   - `lib/src/locale/keys/<feature>_locale_key.dart`
 - Create/Update language modules:
-  - `lib/src/locale/en/<feature>.dart`
-  - `lib/src/locale/ja/<feature>.dart`
-- Ensure `lang_en.dart` / `lang_ja.dart` only aggregate feature maps (do not inject random inline feature strings).
-- Ensure EN/JA JSON key parity for the refactored feature.
+  - `lib/src/locale/en/<feature>_en.dart`
+  - `lib/src/locale/ja/<feature>_ja.dart`
+  - `lib/src/locale/vi/<feature>_vi.dart` (when `vi_VN` is supported)
+- Ensure `lang_*.dart` only aggregate feature maps (do not inject random inline feature strings).
+- Ensure key parity across all active locale modules for the refactored feature.
+- If the target project uses JSON locale source files, update those files first, then regenerate/update Dart locale modules.
 - Refactor is incomplete if any localization module file above is missing.
 - Do not keep demo/static strings inside production widget tree.
 - If temporary mock is needed, source it from `app_demo_data.dart`.
@@ -128,8 +126,9 @@ After refactor, output must include:
   - `<feature>_page.dart` responsibility summary.
   - section-to-component mapping (`section -> file`).
 - List of localized keys added/updated.
-- Localization JSON files created/updated per feature (`en/ja`) and parity status.
-- Localization module files created/updated per feature (`en/<feature>.dart`, `ja/<feature>.dart`) and non-empty check.
+- Localization module files created/updated per feature (`en/<feature>_en.dart`, `ja/<feature>_ja.dart`, `vi/<feature>_vi.dart` when enabled) and non-empty check.
+- Locale key parity status for all active locales.
+- If JSON locale sources exist in project: JSON files created/updated and sync status to Dart modules.
 - List of token replacements (`raw -> AppColors/AppStyles/AppDimensions`).
 - Asset rename mapping (`old path/name -> new path/name`) and updated feature-scoped `AppAssets` constants.
 - Feature asset placement report (`feature -> directories/constants`) to prove no cross-feature mixing.
@@ -141,9 +140,9 @@ After refactor, output must include:
 - Do not keep generated class names in final code.
 - Do not keep all converted UI in one page file for multi-section screens.
 - Do not leave hardcoded colors/text if a project token/key exists.
-- Do not keep feature localization inline in `lang_en.dart`/`lang_ja.dart` when feature JSON exists.
+- Do not keep feature localization inline in `lang_*.dart` aggregators.
 - Do not leave locale folders without actual feature files/content.
-- Do not keep unmatched keys between `json/en/<feature>.json` and `json/ja/<feature>.json`.
+- Do not keep unmatched keys between active locale modules for the same feature.
 - Do not keep convert-only asset naming/folders in final code if they violate project standard.
 - Do not place feature-specific assets in generic folders without feature namespace.
 - Do not reuse ambiguous asset constants across different features.
@@ -158,6 +157,6 @@ Use this prompt to trigger this rule:
 > Keep visual fidelity, but enforce architecture/tokens/localization/state correctness.
 > Extract reusable components and remove convert artifacts.
 > Normalize asset folder/naming by feature and update `AppAssets` with feature-scoped constants.
-> Split localization by feature JSON (en/ja) and update LocaleKey feature module.
+> Split localization by feature module maps (`en/ja/vi` when enabled) and update LocaleKey feature module.
 > Then ask: commit now? push now? create PR now?
 > Return changed files and verification checklist results.

@@ -67,29 +67,26 @@ alwaysApply: false
 
 ### **C. Localization (Priority P1)**
 - **No Raw Strings**: All user-facing text MUST be localized.
-- **JSON Per Function Module (Required)**:
-  - One function module must map to one JSON file per language:
-    - `lib/src/locale/json/en/<function>.json`
-    - `lib/src/locale/json/ja/<function>.json`
-  - Folder-only setup is invalid. Files must exist and contain real key/value entries.
-  - Do not mix multiple function scopes in one JSON file.
-  - Keep key parity between `en` and `ja` for the same function module.
-  - Use `common.json` only for truly shared texts (`ok`, `cancel`, `loading`, ...).
 - **LocaleKey By Function Module (Required)**:
   - Split key declarations by function module:
     - `lib/src/locale/keys/<function>_locale_key.dart`
   - `lib/src/locale/locale_key.dart` is barrel-only: export function key files, do not add business keys directly.
   - Key naming format remains snake_case with function prefix: `function_screen_element`.
 - **Aggregator Contract (Required)**:
-  - Create language module maps per function:
-    - `lib/src/locale/en/<function>.dart`
-    - `lib/src/locale/ja/<function>.dart`
-  - `lang_en.dart` and `lang_ja.dart` are aggregator-only files that merge function-module maps.
-  - Do not hardcode new function strings directly inside `lang_en.dart`/`lang_ja.dart` except app bootstrap keys.
-  - `translation_manager.dart` must keep consuming `enUs` and `jaJp` variables.
+  - Create language module maps per function and per language:
+    - `lib/src/locale/en/<function>_en.dart`
+    - `lib/src/locale/ja/<function>_ja.dart`
+    - `lib/src/locale/vi/<function>_vi.dart` (if `vi_VN` is supported)
+  - `lang_en.dart`, `lang_ja.dart`, `lang_vi.dart` are aggregator-only files that merge function-module maps.
+  - Do not hardcode feature strings directly inside `lang_*.dart`.
+  - Keep exported variables stable: `enUs`, `jaJp`, `viVn`.
+  - `translation_manager.dart` must register all supported locale maps and `appLocales`.
+- **JSON Locale Files (Optional Project Layer)**:
+  - If the project uses JSON translation sources, keep one JSON per function and language, then generate/maintain Dart module maps from those sources.
+  - Parity check must still be performed on the effective Dart maps consumed by `TranslationManager`.
 - **Usage**: Use `.tr` extension with `LocaleKey`.
 - **Common Keys**:
-  - Maintain `common` localization as separate JSON modules (`common.json`) per language.
+  - Maintain `common` localization as separate language modules (`common_en.dart`, `common_ja.dart`, `common_vi.dart` when applicable).
   - Reuse common keys (`ok`, `cancel`, `loading`, `error`, ...) instead of duplicating per function.
     ```dart
     // ✅ Correct
@@ -232,27 +229,23 @@ Follow these steps when creating a new UI screen:
 
 ### **Step 5: Localization**
 - **Identify Strings**: List all text in the new UI (See [GetX Localization Skill](../skills/getx-localization-standard/SKILL.md)).
-- **Create Function JSON Files**:
-  - `lib/src/locale/json/en/<function>.json`
-  - `lib/src/locale/json/ja/<function>.json`
-  - JSON files must not be empty.
 - **Update Keys**:
   - Add/update keys in `lib/src/locale/keys/<function>_locale_key.dart`.
   - Ensure `locale_key.dart` only exports/aggregates function key modules.
 - **Update Aggregators**:
   - Add language module files:
-    - `lib/src/locale/en/<function>.dart`
-    - `lib/src/locale/ja/<function>.dart`
-  - Merge new function translations into `lang_en.dart` and `lang_ja.dart` via function module maps.
-  - Ensure `enUs` and `jaJp` remain valid and synchronized.
-- **Parity Check**: `en` and `ja` JSON for the same function module must have identical key sets.
+    - `lib/src/locale/en/<function>_en.dart`
+    - `lib/src/locale/ja/<function>_ja.dart`
+    - `lib/src/locale/vi/<function>_vi.dart` (if `vi_VN` is supported)
+  - Merge new function translations into `lang_*.dart` via module maps.
+  - Ensure exported maps (`enUs`, `jaJp`, `viVn`) remain valid and synchronized for active locales.
+- **Parity Check**: All active locales for the function module must have identical key sets.
 - **Minimum File Set Gate (STRICT)**:
   - A localization task is incomplete if missing any file in this set:
-    - `json/en/<function>.json`
-    - `json/ja/<function>.json`
     - `keys/<function>_locale_key.dart`
-    - `en/<function>.dart`
-    - `ja/<function>.dart`
+    - `en/<function>_en.dart`
+    - `ja/<function>_ja.dart`
+    - `vi/<function>_vi.dart` (when `vi_VN` is enabled)
 
 ### **Step 6: Main Page Implementation**
 - Create `<page_name>_page.dart` (See [UI Widgets Skill](../skills/flutter-ui-widgets/SKILL.md)).
@@ -309,6 +302,7 @@ Follow these steps when creating a new UI screen:
   import 'package:flutter/widget_previews.dart';
   import 'package:link_home/src/locale/lang_en.dart';
   import 'package:link_home/src/locale/lang_ja.dart';
+  import 'package:link_home/src/locale/lang_vi.dart';
 
   // ... (Page Code) ...
 
@@ -317,6 +311,7 @@ Follow these steps when creating a new UI screen:
     Map<String, Map<String, String>> get keys => {
           'en_US': enUs,
           'ja_JP': jaJp,
+          'vi_VN': viVn,
         };
   }
 
@@ -333,7 +328,7 @@ Follow these steps when creating a new UI screen:
       debugShowCheckedModeBanner: false,
       useInheritedMediaQuery: true, // MUST be true for correct sizing
       translations: PreviewTranslations(),
-      locale: const Locale('ja', 'JP'), // Default Preview Locale
+      locale: const Locale('vi', 'VN'), // Default Preview Locale
       fallbackLocale: const Locale('en', 'US'),
       home: const PageName(),
     );
@@ -345,12 +340,10 @@ Follow these steps when creating a new UI screen:
 ## **4. Checklist Before PR**
 - [ ] No hardcoded colors/styles?
 - [ ] No raw strings? (Localization used)
-- [ ] **Localization JSON per function created?** (`json/en/<function>.json` + `json/ja/<function>.json`)
-- [ ] **Localization files are non-empty?** (not folder-only / not empty JSON)
 - [ ] **LocaleKey split by function?** (`keys/<function>_locale_key.dart`)
-- [ ] **Locale language modules created?** (`en/<function>.dart` + `ja/<function>.dart`)
-- [ ] **EN/JA key parity passed?** (same keys between function JSON files)
-- [ ] **lang_en/lang_ja are aggregator-only?** (no random inline function strings)
+- [ ] **Locale language modules created?** (`en/<function>_en.dart`, `ja/<function>_ja.dart`, `vi/<function>_vi.dart` when enabled)
+- [ ] **Locale key parity passed?** (same keys between all active locale modules)
+- [ ] **lang_*.dart are aggregator-only?** (no random inline function strings)
 - [ ] **Assets grouped by feature?** (`assets/images/<feature>` and `assets/images/icons/<feature>`)
 - [ ] **AppAssets constants are feature-scoped?** (no ambiguous generic names)
 - [ ] **If MCP used: assets downloaded via script?** (`tool/download_figma_mcp_assets.mjs`)

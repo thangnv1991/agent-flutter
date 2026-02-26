@@ -1,61 +1,104 @@
 # New Page Localization Template (GetX)
 
-This template matches the current project structure (TranslationManager uses `enUs` / `jaJp`).
+This template follows modular locale maps per feature with aggregator files.
 
-## 1) Add keys (locale_key.dart)
-
-Example for `customer_detail` page:
+## 1) Add keys (LocaleKey)
 
 ```dart
-// lib/src/locale/locale_key.dart
-class LocaleKey {
-  // ...
-  static const String customerDetailTitle = 'customerDetailTitle';
-  static const String customerDetailSave = 'customerDetailSave';
-  static const String customerDetailDelete = 'customerDetailDelete';
+// lib/src/locale/keys/customer_detail_locale_key.dart
+class CustomerDetailLocaleKey {
+  static const String title = 'customer_detail_title';
+  static const String save = 'customer_detail_save';
+  static const String delete = 'customer_detail_delete';
 }
+
+// lib/src/locale/locale_key.dart (barrel)
+export 'keys/customer_detail_locale_key.dart';
 ```
 
-## 2) Add translations (ALL languages)
+## 2) Add feature language modules
 
-`lang_en.dart`
+```dart
+// lib/src/locale/en/customer_detail_en.dart
+import '../locale_key.dart';
+
+final Map<String, String> customerDetailEn = <String, String>{
+  CustomerDetailLocaleKey.title: 'Customer Detail',
+  CustomerDetailLocaleKey.save: 'Save',
+  CustomerDetailLocaleKey.delete: 'Delete',
+};
+```
+
+```dart
+// lib/src/locale/ja/customer_detail_ja.dart
+import '../locale_key.dart';
+
+final Map<String, String> customerDetailJa = <String, String>{
+  CustomerDetailLocaleKey.title: '顧客詳細',
+  CustomerDetailLocaleKey.save: '保存',
+  CustomerDetailLocaleKey.delete: '削除',
+};
+```
+
+```dart
+// lib/src/locale/vi/customer_detail_vi.dart
+import '../locale_key.dart';
+
+final Map<String, String> customerDetailVi = <String, String>{
+  CustomerDetailLocaleKey.title: 'Chi tiết khách hàng',
+  CustomerDetailLocaleKey.save: 'Lưu',
+  CustomerDetailLocaleKey.delete: 'Xóa',
+};
+```
+
+## 3) Merge in language aggregators
+
 ```dart
 // lib/src/locale/lang_en.dart
-import 'package:link_home/src/locale/locale_key.dart';
+import 'en/customer_detail_en.dart' as customer_detail_en;
 
-Map<String, String> enUs = {
-  // ...
-  LocaleKey.customerDetailTitle: 'Customer Detail',
-  LocaleKey.customerDetailSave: 'Save',   // Prefer reuse: LocaleKey.ok if suitable
-  LocaleKey.customerDetailDelete: 'Delete',
+final Map<String, String> enUs = <String, String>{
+  ...customer_detail_en.customerDetailEn,
 };
 ```
 
-`lang_ja.dart`
 ```dart
 // lib/src/locale/lang_ja.dart
-import 'package:link_home/src/locale/locale_key.dart';
+import 'ja/customer_detail_ja.dart' as customer_detail_ja;
 
-Map<String, String> jaJp = {
-  // ...
-  LocaleKey.customerDetailTitle: '顧客詳細',
-  LocaleKey.customerDetailSave: '保存',
-  LocaleKey.customerDetailDelete: '削除',
+final Map<String, String> jaJp = <String, String>{
+  ...customer_detail_ja.customerDetailJa,
 };
 ```
 
-## 3) Use in UI
-
 ```dart
-Text(LocaleKey.customerDetailTitle.tr)
+// lib/src/locale/lang_vi.dart
+import 'vi/customer_detail_vi.dart' as customer_detail_vi;
+
+final Map<String, String> viVn = <String, String>{
+  ...customer_detail_vi.customerDetailVi,
+};
 ```
 
-## 4) Common Keys & Reuse (Recommended)
+## 4) Register locales
 
-- Reuse common keys when the text is generic:
-  - `LocaleKey.ok`, `LocaleKey.cancel`, `LocaleKey.success`, `LocaleKey.error`, `LocaleKey.next`...
-- Only create feature-specific keys for context-specific texts that differ from common meanings.
+```dart
+// lib/src/locale/translation_manager.dart
+Map<String, Map<String, String>> get keys => <String, Map<String, String>>{
+  'en_US': enUs,
+  'ja_JP': jaJp,
+  'vi_VN': viVn,
+};
+```
 
-## 5) Optional: Modularization to avoid conflicts
+## 5) Use in UI
 
-- If needed, split translations by feature (`en/<feature>.dart`, `ja/<feature>.dart`) and merge them in `lang_en.dart` / `lang_ja.dart` to keep `enUs` / `jaJp` for `TranslationManager`.
+```dart
+Text(CustomerDetailLocaleKey.title.tr)
+```
+
+## 6) Quick checks
+
+- All active locale modules contain same key set.
+- No raw strings in widgets.
+- `lang_*.dart` contains only map aggregation (no inline feature strings).
